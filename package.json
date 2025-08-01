@@ -1,0 +1,38 @@
+{
+  "name": "tempofiller",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Tempo worklog management in JIRA",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:unix": "tsc && chmod +x dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TRANZACT/TempoFiller.git"
+  },
+  "keywords": ["mcp", "tempo", "jira", "worklog", "time-tracking"],
+  "author": "JuanjoFuchs",
+  "license": "ISC",
+  "type": "module",
+  "bin": {
+    "tempofiller": "./dist/index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/TRANZACT/TempoFiller/issues"
+  },
+  "homepage": "https://github.com/TRANZACT/TempoFiller#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "axios": "^1.6.0",
+    "date-fns": "^3.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "typescript": "^5.9.2"
+  }
+}

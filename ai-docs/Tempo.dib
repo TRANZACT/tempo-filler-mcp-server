@@ -1,0 +1,252 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"name":".NET"},{"name":"csharp","languageName":"C#","aliases":["C#","c#"]},{"name":"fsharp","languageName":"F#","aliases":["F#","f#"]},{"name":"html","languageName":"HTML"},{"name":"http","languageName":"HTTP"},{"name":"httpRequest","languageName":"http"},{"name":"javascript","languageName":"JavaScript","aliases":["js"]},{"name":"kql","languageName":"KQL"},{"name":"mermaid","languageName":"Mermaid"},{"name":"pwsh","languageName":"PowerShell","aliases":["powershell"]},{"name":"sql","languageName":"SQL"},{"name":"value"},{"name":"vscode","aliases":["frontend"]}]}}
+
+#!csharp
+
+using System;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+public class JiraIssue {
+    public string Id {get;set;}
+}
+
+private static HttpClient _client = new HttpClient();
+private static JsonSerializerOptions _options = new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true,
+};
+
+// _client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("username:******************"))}");
+_client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer your-personal-access-token");
+
+public async Task<HttpResponseMessage> PostTime(string key, decimal hours, string start, string end) {
+    var getIssueResponse = await _client.GetAsync($"https://jira.company.com/rest/api/latest/issue/{key}");
+    var getIssueString = await getIssueResponse.Content.ReadAsStringAsync();
+    var jiraIssue = JsonSerializer.Deserialize<JiraIssue>(getIssueString, _options);
+    
+    var payload = @"{
+        ""attributes"": {},
+        ""billableSeconds"": {time},
+        ""worker"": ""username"",
+        ""started"": ""{start}"",
+        ""timeSpentSeconds"": {time},
+        ""originTaskId"": ""{issue}"",
+        ""remainingEstimate"": null,
+        ""endDate"": ""{end}""
+    }"
+    .Replace("{time}", (hours*3600).ToString())
+    .Replace("{issue}", jiraIssue.Id)
+    .Replace("{start}", $"{start}T00:00:00.000")
+    .Replace("{end}", $"{end}T00:00:00.000");
+    
+    return await _client.PostAsync("https://jira.company.com/rest/tempo-timesheets/4/worklogs/", new StringContent(payload, Encoding.UTF8, "application/json"));
+    
+}
+
+public async Task<HttpResponseMessage> PostTime(string key, decimal hours, DateTime start, DateTime end) =>
+    await PostTime(key, hours, start.ToString("yyyy-MM-dd"), end.ToString("yyyy-MM-dd"));
+
+private static string PTO = "PROJ-1001";
+private static string ADMINISTRATIVE = "PROJ-1002";
+private static string ExampleProject = "PROJ-1234";
+
+public class TempoTime{
+    public string Key {get;set;}
+    public decimal Hours {get;set;}
+}
+
+public class TempoDay {
+    private int? end;
+    public int Start {get;set;}
+    public int End {
+        get => end ?? Start;
+        set => end = value;
+    }
+    public IEnumerable<TempoTime> Times {get;set;}
+}
+
+public class Tempo {
+    public int Month {get;set;}
+    public IEnumerable<TempoDay> Days {get;set;}
+}
+
+var full = new [] {
+    new TempoTime { Key = ExampleProject, Hours = 8m },
+};
+
+display($"Full: {full.Sum(x => x.Hours)}");
+
+var pto = new [] {
+    new TempoTime{Key = PTO, Hours = 8}
+};
+
+var halfPto = full
+    .Union(pto)
+    .Select(x => new TempoTime { Key = x.Key, Hours = x.Hours / 2});
+
+var fourthPto = full.Select(x => new TempoTime { Key = x.Key, Hours = x.Hours * 0.75m })
+    .Union(pto.Select(x => new TempoTime { Key = x.Key, Hours = x.Hours * 0.25m }))    ;
+
+var administrative = new [] {
+    new TempoTime { Key = ADMINISTRATIVE, Hours = 8 }
+};
+
+var halfAdministrative = full
+    .Union(administrative)
+    .Select(x => new TempoTime { Key = x.Key, Hours = x.Hours / 2});
+
+var halfPTOhalfAdministrative = administrative
+    .Union(pto)
+    .Select(x => new TempoTime { Key = x.Key, Hours = x.Hours / 2});
+
+var overTime = full
+    .Select(x => new TempoTime { Key = x.Key, Hours = x.Hours * 1.5m });
+
+var tempoMonth = new Tempo {
+    Month = 7,
+    Days = new []{
+        new TempoDay { Start=9, Times=full },
+        // new TempoDay { Start=2, Times=halfPto },
+        // new TempoDay { Start=3, Times=pto },
+        // new TempoDay { Start=25, Times=fourthPto },
+        // new TempoDay { Start=28, End=30, Times=full },
+        // new TempoDay { Start=21, End=23, Times=full },
+        // new TempoDay { Start=24, Times=halfPto },
+        // new TempoDay { Start=27, End=31, Times=full },
+    }
+};
+
+var now = DateTime.Now;
+
+var timesToPost = tempoMonth.Days
+    .SelectMany(day => day.Times, (day, time) => new { day, time })
+    .GroupBy(x => (x.time.Key, x.day.Start, x.day.End), (key, times) => new { key, times = times.Select(x => x.time.Hours) })
+    .OrderBy(x => x.key)
+    .SelectMany(x => x.times, (x, time) => new { x.key, time })
+    .Select(x => new { Key = x.key.Key, Hours = x.time, Start = new DateTime(now.Year, tempoMonth.Month, x.key.Start), End = new DateTime(now.Year, tempoMonth.Month, x.key.End) })
+    .ToList();
+
+timesToPost
+
+#!csharp
+
+var me = await _client.GetAsync($"https://jira.company.com/rest/api/latest/myself");
+
+var me1 = await me.Content.ReadAsStringAsync();
+
+me1
+
+#!csharp
+
+var tasks = timesToPost
+    .Select(x => PostTime(x.Key, x.Hours, x.Start, x.End))
+    .ToList();
+    
+var results = await Task.WhenAll(tasks);
+
+var responses = results
+    .Select(x => new { x.StatusCode, Response = x.Content.ReadAsStringAsync().Result });
+
+responses
+
+#!csharp
+
+// Root myDeserializedClass = JsonConvert.DeserializeObject<List<Root>>(myJsonResponse);
+public record Issue(
+    string summary,
+    string key
+);
+
+public record Response(
+    int? billableSeconds,
+    string timeSpent,
+    Issue issue,
+    string started
+);
+
+
+var deserializedResponses = responses
+    .Select(r => new {
+        r.StatusCode,
+        Response = JsonSerializer.Deserialize<Response[]>(r.Response, _options)
+    });
+
+deserializedResponses.Take(2)
+
+#!csharp
+
+var formattedResponses = deserializedResponses
+    .SelectMany(r => r.Response, (x, y) => new {x.StatusCode, y.issue.key, y.issue.summary, y.billableSeconds, y.timeSpent, y.started});
+
+formattedResponses
+
+#!csharp
+
+var pivotTable = formattedResponses
+    .GroupBy(r => r.key)
+    .Select(g => new {
+        Key = g.Key,
+        Hours = formattedResponses
+            .GroupBy(r => DateTime.Parse(r.started).Date)
+            .OrderBy(d => d.Key)
+            .ToDictionary(
+                d => d.Key,
+                d => g.Where(r => DateTime.Parse(r.started).Date == d.Key)
+                    .Sum(x => (x.billableSeconds ?? 0) / 3600.0)
+            )
+    })
+    .OrderBy(x => x.Key);
+
+var dates = formattedResponses
+    .Select(r => DateTime.Parse(r.started).Date)
+    .Distinct()
+    .OrderBy(d => d);
+
+// Calculate daily totals
+var dailyTotals = dates.ToDictionary(
+    date => date,
+    date => formattedResponses
+        .Where(r => DateTime.Parse(r.started).Date == date)
+        .Sum(x => (x.billableSeconds ?? 0) / 3600.0)
+);
+
+var result = pivotTable.Select(row => new Dictionary<string, object>() {
+    { "Key", row.Key },
+    }.Concat(dates.Select(date => 
+        new KeyValuePair<string, object>(
+            date.ToString("MM/dd"), 
+            row.Hours.GetValueOrDefault(date, 0)
+        )
+    )).ToDictionary(x => x.Key, x => x.Value));
+
+var html = "<table border='1'><tr><th>Key</th>";
+html += string.Join("", dates.Select(d => $"<th>{d:MM/dd}</th>"));
+html += "</tr>";
+
+foreach (var row in result)
+{
+    html += "<tr>";
+    html += $"<td>{row["Key"]}</td>";
+    foreach (var date in dates)
+    {
+        var value = row[date.ToString("MM/dd")];
+        html += $"<td>{value:F1}</td>";
+    }
+    html += "</tr>";
+}
+
+// Add totals row
+html += "<tr style='font-weight: bold'><td>Total</td>";
+foreach (var date in dates)
+{
+    html += $"<td>{dailyTotals[date]:F1}</td>";
+}
+html += "</tr>";
+
+html += "</table>";
+
+display(HTML(html));
