@@ -40,6 +40,35 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 
 4. **Test it**: Ask your AI assistant "Get my worklogs for this week"
 
+## How This Was Built
+
+This MCP server was built in just **3 hours** using AI-powered development tools, demonstrating the power of modern AI-assisted coding:
+
+### Development Timeline
+
+1. **Specification Phase**
+   - Created the complete technical specification using **GitHub Copilot** with **Claude Sonnet 4**
+   - Defined all API endpoints, data structures, and tool interfaces
+   - Refined requirements through iterative conversation
+
+2. **Implementation Phase**
+   - Used **VS Code** with **Claude Code** to one-shot the entire implementation
+   - Generated complete TypeScript codebase, tool implementations, and client logic
+   - Implemented all core functionality in a single AI-assisted session
+
+3. **Refinement Phase**
+   - Switched back to **GitHub Copilot** with **Claude Sonnet 4** after hitting usage limits in **Claude Code**
+   - Fixed API payload formatting and authentication issues
+   - Debugged and polished the Tempo API integration
+
+### Key Success Factors
+
+- **Clear specification first**: Having a detailed spec enabled effective one-shot implementation
+- **AI tool synergy**: Different AI tools excelled at different phases of development
+- **Iterative refinement**: Quick feedback loops with AI assistants for debugging
+
+This project showcases how AI-powered development can dramatically accelerate the creation of robust, production-ready tools.
+
 ## Features
 
 - **Get Worklogs**: Retrieve worklogs for users with date range and issue filtering
