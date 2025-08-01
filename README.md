@@ -4,19 +4,31 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 
 ## Quick Start
 
-1. **Build the server**:
+1. **Get the code**:
+
+   ```bash
+   # Clone the repository
+   git clone https://github.com/TRANZACT/tempo-filler-mcp-server.git
+   cd tempo-filler-mcp-server
+   
+   # OR download and extract the ZIP file from GitHub
+   ```
+
+2. **Build the server**:
+
    ```bash
    npm install && npm run build
    ```
 
-2. **Configure your AI assistant** with:
+3. **Configure your AI assistant** with:
+
    ```json
    {
      "servers": {
        "tempo-filler": {
          "type": "stdio",
          "command": "node", 
-         "args": ["path/to/TempoFiller/dist/index.js"],
+         "args": ["/full/path/to/tempo-filler-mcp-server/dist/index.js"],
          "env": {
            "TEMPO_BASE_URL": "https://jira.company.com",
            "TEMPO_PAT": "your-personal-access-token"
@@ -26,7 +38,7 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
    }
    ```
 
-3. **Test it**: Ask your AI assistant "Get my worklogs for this week"
+4. **Test it**: Ask your AI assistant "Get my worklogs for this week"
 
 ## Features
 
@@ -39,15 +51,41 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 
 ## Installation
 
-1. **Clone or download this repository**
+### Prerequisites
+
+- **Node.js** (version 16 or higher)
+- **npm** (comes with Node.js)
+- A **JIRA instance** with **Tempo Timesheets** plugin installed
+- **Personal Access Token** for your JIRA account
+
+### Step-by-Step Setup
+
+1. **Get the source code**:
+
+   ```bash
+   # Option 1: Clone with Git
+   git clone https://github.com/TRANZACT/tempo-filler-mcp-server.git
+   cd tempo-filler-mcp-server
+   
+   # Option 2: Download ZIP
+   # - Go to GitHub repository page
+   # - Click "Code" → "Download ZIP" 
+   # - Extract and navigate to the folder
+   ```
+
 2. **Install dependencies**:
+
    ```bash
    npm install
    ```
+
 3. **Build the server**:
+
    ```bash
    npm run build
    ```
+
+4. **Get your JIRA credentials** (see [Authentication Setup](#authentication-setup) below)
 
 ## Configuration
 
@@ -84,7 +122,7 @@ Add to your MCP servers configuration file (e.g., `mcp.json`):
       "type": "stdio", 
       "command": "node",
       "args": [
-        "D:\\path\\to\\TempoFiller\\dist\\index.js"
+        "/full/path/to/tempo-filler-mcp-server/dist/index.js"
       ],
       "env": {
         "TEMPO_BASE_URL": "https://jira.company.com",
@@ -104,7 +142,7 @@ Add to your Claude Desktop config file:
   "mcpServers": {
     "tempo-filler": {
       "command": "node", 
-      "args": ["path/to/TempoFiller/dist/index.js"],
+      "args": ["/full/path/to/tempo-filler-mcp-server/dist/index.js"],
       "env": {
         "TEMPO_BASE_URL": "https://jira.company.com",
         "TEMPO_PAT": "your-personal-access-token"
@@ -117,16 +155,23 @@ Add to your Claude Desktop config file:
 ### Setup Steps
 
 1. **Build the server**: `npm run build`
-2. **Add configuration** to your AI assistant
-3. **Restart** your AI assistant to load the MCP server
-4. **Test the connection**: Ask "Get my worklogs for this week"
+2. **Find the full path** to your `dist/index.js` file:
+
+   ```bash
+   # Get the full path (use pwd on macOS/Linux, cd on Windows)
+   pwd  # Should show something like /Users/yourname/tempo-filler-mcp-server
+   ```
+
+3. **Add configuration** to your AI assistant (use the full path + `/dist/index.js`)
+4. **Restart** your AI assistant to load the MCP server
+5. **Test the connection**: Ask "Get my worklogs for this week"
 
 ### Authentication Setup
 
 The server uses Personal Access Tokens (PAT) for secure authentication:
 
 1. **Generate a PAT** in your JIRA instance:
-   - Go to **Profile** → **Personal Access Tokens** 
+   - Go to **Profile** → **Personal Access Tokens**
    - Create token with **read/write permissions** for issues and worklogs
    - **Copy the token value** (you won't see it again)
 
@@ -141,11 +186,13 @@ The server uses Personal Access Tokens (PAT) for secure authentication:
 Retrieve worklogs for a date range with optional filtering.
 
 **Parameters:**
+
 - `startDate` (string): Start date in YYYY-MM-DD format  
 - `endDate` (string, optional): End date, defaults to startDate
 - `issueKey` (string, optional): Filter by specific issue key
 
 **Example Usage:**
+
 ```
 "Get my July hours"
 → Returns: Total: 184h (23 entries)
@@ -160,6 +207,7 @@ Retrieve worklogs for a date range with optional filtering.
 Create a new worklog entry for a specific issue and date.
 
 **Parameters:**
+
 - `issueKey` (string): JIRA issue key (e.g., "PROJ-1234")
 - `hours` (number): Hours worked (decimal, 0.1-24)
 - `startDate` (string): Date in YYYY-MM-DD format
@@ -168,6 +216,7 @@ Create a new worklog entry for a specific issue and date.
 - `description` (string, optional): Work description
 
 **Example Usage:**
+
 ```
 "Log 8 hours to PROJ-1234 for July 10th"
 → Returns: ✅ Worklog Created Successfully
@@ -182,6 +231,7 @@ Create a new worklog entry for a specific issue and date.
 Create multiple worklog entries efficiently with concurrent processing.
 
 **Parameters:**
+
 - `worklogs` (array): Array of worklog objects:
   - `issueKey` (string): JIRA issue key
   - `hours` (number): Hours worked  
@@ -190,6 +240,7 @@ Create multiple worklog entries efficiently with concurrent processing.
 - `billable` (boolean, optional): Whether time is billable for all entries
 
 **Example Usage:**
+
 ```
 "Post 8 hours a day every weekday from July 11 to 15 on PROJ-1234"
 → Returns: ✅ Bulk Worklog Creation Started
@@ -207,9 +258,11 @@ Create multiple worklog entries efficiently with concurrent processing.
 Delete an existing worklog entry by ID.
 
 **Parameters:**
+
 - `worklogId` (string): Tempo worklog ID to delete
 
 **Example Usage:**
+
 ```
 "Delete worklog with ID 1211547"
 → Removes the specified worklog entry
@@ -218,6 +271,7 @@ Delete an existing worklog entry by ID.
 ## Example Interactions
 
 ### Viewing Your Time Logs
+
 ```
 "Get my July hours"
 → Returns a summary of all worklogs for July with totals by issue and date
@@ -230,6 +284,7 @@ Delete an existing worklog entry by ID.
 ```
 
 ### Creating Single Worklog Entries
+
 ```
 "Log 8 hours to PROJ-1234 for July 10th"
 → Creates a single worklog entry:
@@ -243,6 +298,7 @@ Delete an existing worklog entry by ID.
 ```
 
 ### Bulk Worklog Creation
+
 ```
 "Post 8 hours a day every weekday from July 11 to 15 on PROJ-1234"
 → Creates 5 worklog entries (skips weekends):
@@ -259,6 +315,7 @@ Delete an existing worklog entry by ID.
 ```
 
 ### Advanced Bulk Operations
+
 ```
 "Log time for the entire month of July:
 - PROJ-1234: 8 hours every weekday  
@@ -273,6 +330,7 @@ Delete an existing worklog entry by ID.
 ```
 
 ### Worklog Management
+
 ```
 "Delete worklog with ID 1211547"
 → Removes the specified worklog entry
@@ -286,6 +344,7 @@ Delete an existing worklog entry by ID.
 Based on successful implementation, here are practical scenarios:
 
 ### Daily Time Logging
+
 ```bash
 # Using VS Code with GitHub Copilot:
 User: "Log 8 hours on PROJ-1234 for today"
@@ -298,6 +357,7 @@ AI: ✅ Worklog Created Successfully
 ```
 
 ### Monthly Time Filling  
+
 ```bash
 # Bulk operation for entire month:
 User: "Fill all weekdays in July with 8 hours on PROJ-1234"
@@ -309,6 +369,7 @@ AI: ✅ Bulk Worklog Creation Started
 ```
 
 ### Time Tracking Analysis
+
 ```bash
 # Monthly summary:
 User: "Get my July hours"
@@ -360,23 +421,48 @@ The server can be tested using the MCP Inspector or by integrating with compatib
 ## API Compatibility
 
 This server is compatible with:
+
 - JIRA Core/Software 8.14+
 - Tempo Timesheets 4.x
 - Model Context Protocol specification
 
 ## Troubleshooting
 
+### Setup Issues
+
+**Server not found / Path issues:**
+
+- Ensure you're using the **full absolute path** to `dist/index.js`
+- On Windows: `C:\Users\YourName\tempo-filler-mcp-server\dist\index.js`
+- On macOS/Linux: `/Users/YourName/tempo-filler-mcp-server/dist/index.js`
+- Verify the file exists: `ls dist/index.js` (should show the file)
+
+**Build failures:**
+
+- Check Node.js version: `node --version` (should be 16+)
+- Clear cache and retry: `npm cache clean --force && npm install && npm run build`
+- Check for error messages in the build output
+
+**AI Assistant not loading the server:**
+
+- Restart your AI assistant completely after adding the configuration
+- Check the configuration file syntax (valid JSON)
+- Verify environment variables are set correctly
+
 ### Authentication Issues
+
 - Verify your Personal Access Token is valid and has proper permissions
 - Check that your JIRA instance URL is correct
 - Ensure Tempo is properly installed and configured in your JIRA instance
 
 ### Connection Issues
+
 - Verify network connectivity to your JIRA instance
 - Check firewall and proxy settings
 - Confirm the JIRA instance is accessible from your environment
 
 ### Permission Issues
+
 - Ensure your user account has permission to log time to the specified issues
 - Verify Tempo is configured to allow time logging for your user
 - Check project permissions in JIRA
