@@ -2,6 +2,24 @@
 
 A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [How This Was Built](#how-this-was-built)
+- [Features](#features)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage with AI Assistants](#usage-with-ai-assistants)
+- [Available Tools](#available-tools)
+- [Example Interactions](#example-interactions)
+- [Real-World Usage Examples](#real-world-usage-examples)
+- [Development](#development)
+- [Security](#security)
+- [API Compatibility](#api-compatibility)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+- [Contributing](#contributing)
+
 ## Quick Start
 
 1. **Get the code**:
