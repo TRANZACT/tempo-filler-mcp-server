@@ -38,6 +38,7 @@ jobs:
         run: |
           test -x dist/index.js || chmod +x dist/index.js
           test -x dist/index.js
+        shell: bash
       
       - name: Test package execution
         run: |
@@ -71,6 +72,7 @@ jobs:
             echo "Expected server to require TEMPO_BASE_URL environment variable"
             exit 1
           fi
+        shell: bash
 
   security:
     name: Security Audit
@@ -126,6 +128,7 @@ jobs:
             exit 1
           fi
           echo "Version verified: $RELEASE_TAG"
+        shell: bash
       
       - name: Test package locally
         run: |
@@ -159,6 +162,7 @@ jobs:
           else
             echo "⚠️ Binary validation test inconclusive (may be normal)"
           fi
+        shell: bash
       
       - name: Publish to NPM
         run: npm publish --provenance
@@ -193,6 +197,7 @@ jobs:
           else
             echo "⚠️ NPX test inconclusive but package was installed successfully"
           fi
+        shell: bash
 
   post-publish:
     name: Post-publish validation
