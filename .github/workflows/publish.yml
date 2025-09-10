@@ -42,7 +42,24 @@ jobs:
       - name: Test package execution
         run: |
           # Test that the server validates environment variables properly
-          output=$(timeout 5s node dist/index.js 2>&1 || true)
+          # Use different timeout methods for different OS
+          if command -v timeout >/dev/null 2>&1; then
+            # Linux/Windows with timeout command
+            output=$(timeout 5s node dist/index.js 2>&1 || true)
+          elif command -v gtimeout >/dev/null 2>&1; then
+            # macOS with coreutils installed
+            output=$(gtimeout 5s node dist/index.js 2>&1 || true)
+          else
+            # Fallback: run with background process and kill after 5 seconds
+            node dist/index.js > temp_output.txt 2>&1 &
+            PID=$!
+            sleep 5
+            kill $PID 2>/dev/null || true
+            wait $PID 2>/dev/null || true
+            output=$(cat temp_output.txt || echo "")
+            rm -f temp_output.txt
+          fi
+          
           echo "Server output: $output"
           
           # Check that it properly validates required environment variables
@@ -123,7 +140,20 @@ jobs:
           which tempo-filler-mcp-server || echo "Binary not found in PATH"
           
           # Test that the installed binary validates environment properly
-          output=$(timeout 5s tempo-filler-mcp-server 2>&1 || true)
+          if command -v timeout >/dev/null 2>&1; then
+            output=$(timeout 5s tempo-filler-mcp-server 2>&1 || true)
+          elif command -v gtimeout >/dev/null 2>&1; then
+            output=$(gtimeout 5s tempo-filler-mcp-server 2>&1 || true)
+          else
+            tempo-filler-mcp-server > temp_output.txt 2>&1 &
+            PID=$!
+            sleep 5
+            kill $PID 2>/dev/null || true
+            wait $PID 2>/dev/null || true
+            output=$(cat temp_output.txt || echo "")
+            rm -f temp_output.txt
+          fi
+          
           if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
             echo "✅ Installed binary properly validates environment variables"
           else
@@ -144,7 +174,20 @@ jobs:
           npm install -g @tranzact/tempo-filler-mcp-server@latest
           
           # Verify it's accessible via npx and validates environment
-          output=$(timeout 10s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          if command -v timeout >/dev/null 2>&1; then
+            output=$(timeout 10s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          elif command -v gtimeout >/dev/null 2>&1; then
+            output=$(gtimeout 10s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          else
+            npx --yes @tranzact/tempo-filler-mcp-server > temp_output.txt 2>&1 &
+            PID=$!
+            sleep 10
+            kill $PID 2>/dev/null || true
+            wait $PID 2>/dev/null || true
+            output=$(cat temp_output.txt || echo "")
+            rm -f temp_output.txt
+          fi
+          
           if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
             echo "✅ Published package works correctly via npx"
           else
@@ -164,7 +207,20 @@ jobs:
       - name: Test npx execution across platforms
         run: |
           # Test that npx can execute the package and validates environment
-          output=$(timeout 30s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          if command -v timeout >/dev/null 2>&1; then
+            output=$(timeout 30s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          elif command -v gtimeout >/dev/null 2>&1; then
+            output=$(gtimeout 30s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          else
+            npx --yes @tranzact/tempo-filler-mcp-server > temp_output.txt 2>&1 &
+            PID=$!
+            sleep 30
+            kill $PID 2>/dev/null || true
+            wait $PID 2>/dev/null || true
+            output=$(cat temp_output.txt || echo "")
+            rm -f temp_output.txt
+          fi
+          
           if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
             echo "✅ NPX execution successful on ${{ matrix.os }}"
           else
