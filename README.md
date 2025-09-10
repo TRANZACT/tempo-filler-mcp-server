@@ -1,5 +1,7 @@
 # Tempo Filler MCP Server
 
+[![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Install in Claude Desktop](https://img.shields.io/badge/claude_desktop-install_tempo--filler-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v1.0.1/bundle.dxt)
+
 A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.
 
 ## Table of Contents
@@ -9,29 +11,23 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 - [Features](#features)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Usage with AI Assistants](#usage-with-ai-assistants)
 - [Available Tools](#available-tools)
-- [Example Interactions](#example-interactions)
 - [Real-World Usage Examples](#real-world-usage-examples)
-- [Development](#development)
-- [Security](#security)
-- [API Compatibility](#api-compatibility)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-- [Contributing](#contributing)
 
 ## Quick Start
 
-**The fastest way to get started is with npx** - no installation required!
+### Install in VS Code
 
-1. **Set up your environment variables**:
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D)
 
-   ```bash
-   export TEMPO_BASE_URL="https://your-jira-instance.com"
-   export TEMPO_PAT="your-personal-access-token"
-   ```
+### Install in Claude Desktop
 
-2. **Configure your AI assistant** to use the npx command:
+[![Install in Claude Desktop](https://img.shields.io/badge/claude_desktop-install_tempo--filler-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v1.0.1/bundle.dxt)
+
+1. Download the MCP bundle first
+2. Then go to settings → extensions and drag the file there to install.
+
+### Install Manually on your favorite AI Assistant
 
    ```json
    {
@@ -47,44 +43,6 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
      }
    }
    ```
-
-3. **That's it!** Your AI assistant can now manage your Tempo worklogs.
-
-### Alternative: Local Installation
-
-If you prefer to install locally or need to customize the code:
-
-1. **Install globally**:
-
-   ```bash
-   npm install -g @tranzact/tempo-filler-mcp-server
-   ```
-
-2. **Or clone and build from source**:
-
-   ```bash
-   git clone https://github.com/TRANZACT/TempoFiller.git
-   cd TempoFiller
-   npm install && npm run build
-   ```
-
-3. **Configure your AI assistant** with local installation:
-
-   ```json
-   {
-     "mcpServers": {
-       "tempo-filler": {
-         "command": "tempo-filler-mcp-server",
-         "env": {
-           "TEMPO_BASE_URL": "https://jira.company.com",
-           "TEMPO_PAT": "your-personal-access-token"
-         }
-       }
-     }
-   }
-   ```
-
-4. **Test it**: Ask your AI assistant "Get my worklogs for this week"
 
 ## How This Was Built
 
@@ -132,27 +90,15 @@ This project showcases how AI-powered development can dramatically accelerate th
 - A **JIRA instance** with **Tempo Timesheets** plugin installed
 - **Personal Access Token** for your JIRA account
 
-### NPX Usage (Recommended)
+### NPX (Recommended)
 
 The easiest way to use the server is with npx - no installation required:
 
 ```bash
-# Test that it works
-npx @tranzact/tempo-filler-mcp-server --help
+npx @tranzact/tempo-filler-mcp-server
 ```
 
 Just configure your AI assistant to use `npx @tranzact/tempo-filler-mcp-server` as the command.
-
-### Global Installation
-
-If you prefer to install globally:
-
-```bash
-npm install -g @tranzact/tempo-filler-mcp-server
-
-# Verify installation
-tempo-filler-mcp-server --help
-```
 
 ### Development Setup (Source)
 
@@ -161,7 +107,7 @@ For development or customization:
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/TRANZACT/TempoFiller.git
+   git clone https://github.com/TRANZACT/tempo-filler-mcp-server
    cd TempoFiller
    ```
 
@@ -192,108 +138,6 @@ The server requires environment variables for authentication and configuration:
 4. Give it a name (e.g., "Tempo MCP Server")
 5. Set appropriate permissions (read/write access to issues and worklogs)
 6. Copy the token value for use in `TEMPO_PAT`
-
-## Usage with AI Assistants
-
-### GitHub Copilot Configuration
-
-Add to your MCP servers configuration (typically in VS Code settings):
-
-```json
-{
-  "github.copilot.chat.mcp.servers": {
-    "tempo-filler": {
-      "command": "npx",
-      "args": ["@tranzact/tempo-filler-mcp-server"],
-      "env": {
-        "TEMPO_BASE_URL": "https://your-jira-instance.com",
-        "TEMPO_PAT": "your-personal-access-token"
-      }
-    }
-  }
-}
-```
-
-### Claude Desktop Configuration
-
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "tempo-filler": {
-      "command": "npx", 
-      "args": ["@tranzact/tempo-filler-mcp-server"],
-      "env": {
-        "TEMPO_BASE_URL": "https://your-jira-instance.com",
-        "TEMPO_PAT": "your-personal-access-token"
-      }
-    }
-  }
-}
-```
-
-### Alternative: Local Installation
-
-If you have the package installed globally or built from source:
-
-```json
-{
-  "mcpServers": {
-    "tempo-filler": {
-      "command": "tempo-filler-mcp-server",
-      "env": {
-        "TEMPO_BASE_URL": "https://your-jira-instance.com",
-        "TEMPO_PAT": "your-personal-access-token"
-      }
-    }
-  }
-}
-```
-
-### Or with Node.js directly (development):
-
-```json
-{
-  "mcpServers": {
-    "tempo-filler": {
-      "command": "node", 
-      "args": ["/full/path/to/tempo-filler-mcp-server/dist/index.js"],
-      "env": {
-        "TEMPO_BASE_URL": "https://jira.company.com",
-        "TEMPO_PAT": "your-personal-access-token"
-      }
-    }
-  }
-}
-```
-
-### Setup Steps
-
-1. **Build the server**: `npm run build`
-2. **Find the full path** to your `dist/index.js` file:
-
-   ```bash
-   # Get the full path (use pwd on macOS/Linux, cd on Windows)
-   pwd  # Should show something like /Users/yourname/tempo-filler-mcp-server
-   ```
-
-3. **Add configuration** to your AI assistant (use the full path + `/dist/index.js`)
-4. **Restart** your AI assistant to load the MCP server
-5. **Test the connection**: Ask "Get my worklogs for this week"
-
-### Authentication Setup
-
-The server uses Personal Access Tokens (PAT) for secure authentication:
-
-1. **Generate a PAT** in your JIRA instance:
-   - Go to **Profile** → **Personal Access Tokens**
-   - Create token with **read/write permissions** for issues and worklogs
-   - **Copy the token value** (you won't see it again)
-
-2. **Set environment variables**:
-   - `TEMPO_BASE_URL`: Your JIRA URL (e.g., `https://jira.company.com`)
-   - `TEMPO_PAT`: Your personal access token
 
 ## Available Tools
 
@@ -384,77 +228,6 @@ Delete an existing worklog entry by ID.
 → Removes the specified worklog entry
 ```
 
-## Example Interactions
-
-### Viewing Your Time Logs
-
-```
-"Get my July hours"
-→ Returns a summary of all worklogs for July with totals by issue and date
-
-"Show me my worklogs for July 2025"  
-→ Uses get_worklogs to retrieve detailed worklog information
-
-"What did I work on last week?"
-→ Fetches worklogs for the previous week with issue breakdown
-```
-
-### Creating Single Worklog Entries
-
-```
-"Log 8 hours to PROJ-1234 for July 10th"
-→ Creates a single worklog entry:
-   ✅ Issue: PROJ-1234 - Example Project Task
-   ✅ Hours: 8h (billable)
-   ✅ Date: 2025-07-10
-   ✅ Worklog ID: 1211549
-
-"Post 6.5 hours on PROJ-123 for today with description 'Bug fixes and testing'"
-→ Uses post_worklog with custom description
-```
-
-### Bulk Worklog Creation
-
-```
-"Post 8 hours a day every weekday from July 11 to 15 on PROJ-1234"
-→ Creates 5 worklog entries (skips weekends):
-   ✅ July 11 (Friday): 8h
-   ✅ July 14 (Monday): 8h  
-   ✅ July 15 (Tuesday): 8h
-   Total: 24 hours across 3 weekdays
-
-"Fill my timesheet for this week - 4 hours PROJ-1111 and 4 hours PROJ-2222 each day"
-→ Uses bulk_post_worklogs with multiple issues per day
-
-"Finish filling up the days until July 31st"
-→ Automatically fills remaining weekdays in the month
-```
-
-### Advanced Bulk Operations
-
-```
-"Log time for the entire month of July:
-- PROJ-1234: 8 hours every weekday  
-- Skip weekends
-- All time should be billable"
-→ Creates 22 worklog entries for all weekdays in July
-
-"Fill my Q2 timesheet with 8 hours daily split between:
-- 60% on PROJ-1234 (development)
-- 40% on PROJ-5678 (meetings)"
-→ Calculates hours and creates entries for the quarter
-```
-
-### Worklog Management
-
-```
-"Delete worklog with ID 1211547"
-→ Removes the specified worklog entry
-
-"Show me a summary of my July hours by issue"
-→ Groups worklogs by issue with totals and percentages
-```
-
 ## Real-World Usage Examples
 
 Based on successful implementation, here are practical scenarios:
@@ -522,95 +295,6 @@ src/
 - `npm run build`: Compile TypeScript to JavaScript
 - `npm run dev`: Build and run the server
 - `npm run typecheck`: Type checking without compilation
-
-### Testing
-
-The server can be tested using the MCP Inspector or by integrating with compatible AI assistants.
-
-## Security
-
-- Personal Access Tokens are used for secure authentication
-- No credentials are logged or exposed
-- Input validation is performed on all parameters
-- Rate limiting and error handling protect against API abuse
-
-## API Compatibility
-
-This server is compatible with:
-
-- JIRA Core/Software 8.14+
-- Tempo Timesheets 4.x
-- Model Context Protocol specification
-
-## Troubleshooting
-
-### NPX Issues (Recommended Installation)
-
-**NPX command not found or fails:**
-
-- Ensure you have Node.js 16+ installed: `node --version`
-- Update npm: `npm install -g npm@latest`
-- Try with explicit version: `npx @tranzact/tempo-filler-mcp-server@latest`
-- Clear npx cache: `npx --yes @tranzact/tempo-filler-mcp-server`
-
-**Server takes too long to start with npx:**
-
-- The first run downloads the package, subsequent runs are faster
-- Consider global installation for better performance: `npm install -g @tranzact/tempo-filler-mcp-server`
-
-**Permission errors with npx:**
-
-- On macOS/Linux, ensure user has write permissions to npm directories
-- Try: `npm config set prefix ~/.npm-global` and add to PATH
-
-### AI Assistant Integration Issues
-
-**AI Assistant not loading the server:**
-
-- Restart your AI assistant completely after adding the configuration
-- Verify JSON syntax in configuration files
-- Check that environment variables are set correctly
-- For npx usage, ensure the command is exactly `npx` with args `["@tranzact/tempo-filler-mcp-server"]`
-
-**Configuration Examples Not Working:**
-
-- For Claude Desktop: Configuration file location varies by OS
-  - Windows: `%APPDATA%/Claude/claude_desktop_config.json`
-  - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-  - Linux: `~/.config/claude/claude_desktop_config.json`
-
-### Local Installation Issues
-
-**Server not found / Path issues (local installation):**
-
-- Use full absolute paths when configuring with `node` command
-- Verify the file exists: `ls dist/index.js` (should show the file)
-- For global installation, verify binary is in PATH: `which tempo-filler-mcp-server`
-
-**Build failures:**
-
-- Check Node.js version: `node --version` (should be 16+)
-- Clear cache and retry: `npm cache clean --force && npm install && npm run build`
-- Check for error messages in the build output
-- Verify environment variables are set correctly
-
-### Authentication Issues
-
-- Verify your Personal Access Token is valid and has proper permissions
-- Check that your JIRA instance URL is correct
-- Ensure Tempo is properly installed and configured in your JIRA instance
-
-### Connection Issues
-
-- Verify network connectivity to your JIRA instance
-- Check firewall and proxy settings
-- Confirm the JIRA instance is accessible from your environment
-
-### Permission Issues
-
-- Ensure your user account has permission to log time to the specified issues
-- Verify Tempo is configured to allow time logging for your user
-- Check project permissions in JIRA
 
 ## License
 

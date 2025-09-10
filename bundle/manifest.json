@@ -1,0 +1,52 @@
+{
+  "dxt_version": "0.1",
+  "name": "TempoFiller MCP Server",
+  "version": "1.0.1",
+  "description": "A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.",
+  "author": {
+    "name": "JuanjoFuchs",
+    "email": "juanjose.fuchs@tranzact.net"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "npx",
+      "args": [
+        "@tranzact/tempo-filler-mcp-server"
+      ],
+      "env": {
+        "TEMPO_BASE_URL": "${user_config.tempo_base_url}",
+        "TEMPO_PAT": "${user_config.tempo_pat}",
+        "TEMPO_DEFAULT_HOURS": "${user_config.tempo_default_hours}"
+      }
+    }
+  },
+  "user_config": {
+    "tempo_base_url": {
+      "type": "string",
+      "title": "Tempo Base URL",
+      "description": "Your JIRA/Tempo instance base URL (e.g., https://your-company.atlassian.net)",
+      "required": true
+    },
+    "tempo_pat": {
+      "type": "string",
+      "title": "Tempo Personal Access Token",
+      "description": "Your Tempo Personal Access Token for API authentication",
+      "required": true,
+      "sensitive": true
+    },
+    "tempo_default_hours": {
+      "type": "number",
+      "title": "Default Hours Per Day",
+      "description": "Default number of hours to log per day when not specified",
+      "required": false,
+      "default": 8
+    }
+  },
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TRANZACT/tempo-filler-mcp-server"
+  }
+}
