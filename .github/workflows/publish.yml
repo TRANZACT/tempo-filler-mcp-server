@@ -98,6 +98,9 @@ jobs:
     name: Publish to NPM
     needs: [test, security]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for provenance
     
     steps:
       - name: Checkout code

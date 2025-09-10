@@ -27,11 +27,11 @@
     "url": "git+https://github.com/TRANZACT/tempo-filler-mcp-server.git"
   },
   "keywords": [
-    "mcp", 
+    "mcp",
     "model-context-protocol",
-    "tempo", 
-    "jira", 
-    "worklog", 
+    "tempo",
+    "jira",
+    "worklog",
     "time-tracking",
     "ai",
     "assistant",
@@ -43,7 +43,7 @@
   "license": "ISC",
   "type": "module",
   "bin": {
-    "tempo-filler-mcp-server": "./dist/index.js"
+    "tempo-filler-mcp-server": "dist/index.js"
   },
   "bugs": {
     "url": "https://github.com/TRANZACT/tempo-filler-mcp-server/issues"
