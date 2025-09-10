@@ -416,7 +416,8 @@ export class TempoClient {
       started: `${startDate}T00:00:00.000`,
       originTaskId: issue.id,
       remainingEstimate: null,
-      endDate: `${endDate}T00:00:00.000`
+      endDate: `${endDate}T00:00:00.000`,
+      comment: params.description || undefined
     };
 
     return payload;

@@ -71,6 +71,7 @@ export interface TempoWorklog {
   worker: string;
   attributes: Record<string, any>;
   timeSpent: string;        // Human readable format from API
+  comment?: string;         // Worklog description/comment
 }
 
 // Tempo worklog creation payload
@@ -83,6 +84,7 @@ export interface TempoWorklogCreatePayload {
   originTaskId: string;         // Numerical JIRA issue ID
   remainingEstimate?: number | null;
   endDate: string;              // Format: "YYYY-MM-DDTHH:mm:ss.SSS"
+  comment?: string;             // Worklog description/comment
 }
 
 // Error response from Tempo API

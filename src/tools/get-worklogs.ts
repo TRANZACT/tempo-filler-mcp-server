@@ -30,7 +30,7 @@ export async function getWorklogs(
 
     // Process and format the worklogs
     const worklogs: TempoWorklog[] = worklogResponses.map((response: TempoWorklogResponse) => ({
-      id: response.id || 'unknown',
+      id: response.tempoWorklogId?.toString() || response.id || 'unknown',
       issueKey: response.issue.key,
       issueSummary: response.issue.summary,
       timeSpentSeconds: response.timeSpentSeconds,
@@ -38,7 +38,8 @@ export async function getWorklogs(
       started: response.started,
       worker: response.worker,
       attributes: response.attributes || {},
-      timeSpent: response.timeSpent
+      timeSpent: response.timeSpent,
+      comment: response.comment || ''
     }));
 
     // Calculate total hours
@@ -79,10 +80,13 @@ export async function getWorklogs(
         return acc;
       }, {} as Record<string, { totalSeconds: number; entries: number }>);
 
-      // Show summary by issue
+      // Show summary by issue with issue summary
       for (const [key, data] of Object.entries(issueGroups)) {
         const hours = (data.totalSeconds / 3600).toFixed(1);
-        displayText += `• **${key}**: ${hours}h (${data.entries} entries)\n`;
+        // Get issue summary from first worklog with this key
+        const sampleWorklog = worklogs.find(w => w.issueKey === key);
+        const issueSummary = sampleWorklog?.issueSummary || '';
+        displayText += `• **${key}** (${issueSummary}): ${hours}h (${data.entries} entries)\n`;
       }
 
       // Show recent entries (limit to 10 most recent)
@@ -95,7 +99,11 @@ export async function getWorklogs(
         for (const worklog of recentWorklogs) {
           const date = worklog.started.split('T')[0];
           const hours = (worklog.timeSpentSeconds / 3600).toFixed(1);
-          displayText += `• ${date}: ${worklog.issueKey} ${hours}h\n`;
+          let entryText = `• ${date}: **${worklog.issueKey}** (${worklog.issueSummary}) - ${hours}h - [ID: ${worklog.id}]`;
+          if (worklog.comment && worklog.comment.trim()) {
+            entryText += ` - "${worklog.comment}"`;
+          }
+          displayText += `${entryText}\n`;
         }
       }
 
