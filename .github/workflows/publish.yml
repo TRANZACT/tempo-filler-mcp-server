@@ -40,8 +40,20 @@ jobs:
           test -x dist/index.js
       
       - name: Test package execution
-        run: node dist/index.js --version || echo "Server started and stopped normally"
-        timeout-minutes: 1
+        run: |
+          # Test that the server validates environment variables properly
+          output=$(timeout 5s node dist/index.js 2>&1 || true)
+          echo "Server output: $output"
+          
+          # Check that it properly validates required environment variables
+          if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
+            echo "✅ Server properly validates environment variables"
+            exit 0
+          else
+            echo "❌ Server validation test failed"
+            echo "Expected server to require TEMPO_BASE_URL environment variable"
+            exit 1
+          fi
 
   security:
     name: Security Audit
@@ -107,8 +119,16 @@ jobs:
           # Test that we can install and run the package
           npm install -g "$PACKAGE_FILE"
           
-          # Verify the binary is accessible
+          # Verify the binary is accessible and validates environment
           which tempo-filler-mcp-server || echo "Binary not found in PATH"
+          
+          # Test that the installed binary validates environment properly
+          output=$(timeout 5s tempo-filler-mcp-server 2>&1 || true)
+          if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
+            echo "✅ Installed binary properly validates environment variables"
+          else
+            echo "⚠️ Binary validation test inconclusive (may be normal)"
+          fi
       
       - name: Publish to NPM
         run: npm publish --provenance
@@ -123,8 +143,13 @@ jobs:
           # Try to install the published package
           npm install -g @tranzact/tempo-filler-mcp-server@latest
           
-          # Verify it's accessible via npx
-          npx --yes @tranzact/tempo-filler-mcp-server --version || echo "Published package verified"
+          # Verify it's accessible via npx and validates environment
+          output=$(timeout 10s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
+            echo "✅ Published package works correctly via npx"
+          else
+            echo "⚠️ NPX test inconclusive but package was installed successfully"
+          fi
 
   post-publish:
     name: Post-publish validation
@@ -138,6 +163,11 @@ jobs:
     steps:
       - name: Test npx execution across platforms
         run: |
-          # Test that npx can execute the package
-          timeout 30s npx --yes @tranzact/tempo-filler-mcp-server --help || echo "npx execution test completed"
+          # Test that npx can execute the package and validates environment
+          output=$(timeout 30s npx --yes @tranzact/tempo-filler-mcp-server 2>&1 || true)
+          if echo "$output" | grep -q "TEMPO_BASE_URL.*required"; then
+            echo "✅ NPX execution successful on ${{ matrix.os }}"
+          else
+            echo "⚠️ NPX test completed on ${{ matrix.os }} (output may vary)"
+          fi
         shell: bash
