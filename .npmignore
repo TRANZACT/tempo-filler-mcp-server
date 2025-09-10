@@ -1,0 +1,85 @@
+# Source code
+src/
+*.ts
+
+# Development files
+tsconfig.json
+.vscode/
+.idea/
+
+# Tests
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Documentation and specifications
+docs/
+specs/
+PROJECT_UNDERSTANDING.md
+
+# Build artifacts
+*.tsbuildinfo
+.tsbuildinfo
+
+# Environment files
+.env*
+*.env
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.travis.yml
+.circleci/
+jenkins*
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.yarn/
+.pnpm/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Dependencies
+node_modules/
+
+# Temporary directories
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor backup files
+*~
+*.swp
+*.swo
+
+# Local configuration
+config.local.json
+settings.local.json

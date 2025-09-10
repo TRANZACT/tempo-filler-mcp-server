@@ -22,31 +22,59 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 
 ## Quick Start
 
-1. **Get the code**:
+**The fastest way to get started is with npx** - no installation required!
+
+1. **Set up your environment variables**:
 
    ```bash
-   # Clone the repository
-   git clone https://github.com/TRANZACT/tempo-filler-mcp-server.git
-   cd tempo-filler-mcp-server
-   
-   # OR download and extract the ZIP file from GitHub
+   export TEMPO_BASE_URL="https://your-jira-instance.com"
+   export TEMPO_PAT="your-personal-access-token"
    ```
 
-2. **Build the server**:
-
-   ```bash
-   npm install && npm run build
-   ```
-
-3. **Configure your AI assistant** with:
+2. **Configure your AI assistant** to use the npx command:
 
    ```json
    {
-     "servers": {
+     "mcpServers": {
        "tempo-filler": {
-         "type": "stdio",
-         "command": "node", 
-         "args": ["/full/path/to/tempo-filler-mcp-server/dist/index.js"],
+         "command": "npx",
+         "args": ["@tranzact/tempo-filler-mcp-server"],
+         "env": {
+           "TEMPO_BASE_URL": "https://your-jira-instance.com",
+           "TEMPO_PAT": "your-personal-access-token"
+         }
+       }
+     }
+   }
+   ```
+
+3. **That's it!** Your AI assistant can now manage your Tempo worklogs.
+
+### Alternative: Local Installation
+
+If you prefer to install locally or need to customize the code:
+
+1. **Install globally**:
+
+   ```bash
+   npm install -g @tranzact/tempo-filler-mcp-server
+   ```
+
+2. **Or clone and build from source**:
+
+   ```bash
+   git clone https://github.com/TRANZACT/TempoFiller.git
+   cd TempoFiller
+   npm install && npm run build
+   ```
+
+3. **Configure your AI assistant** with local installation:
+
+   ```json
+   {
+     "mcpServers": {
+       "tempo-filler": {
+         "command": "tempo-filler-mcp-server",
          "env": {
            "TEMPO_BASE_URL": "https://jira.company.com",
            "TEMPO_PAT": "your-personal-access-token"
@@ -101,38 +129,47 @@ This project showcases how AI-powered development can dramatically accelerate th
 ### Prerequisites
 
 - **Node.js** (version 16 or higher)
-- **npm** (comes with Node.js)
 - A **JIRA instance** with **Tempo Timesheets** plugin installed
 - **Personal Access Token** for your JIRA account
 
-### Step-by-Step Setup
+### NPX Usage (Recommended)
 
-1. **Get the source code**:
+The easiest way to use the server is with npx - no installation required:
+
+```bash
+# Test that it works
+npx @tranzact/tempo-filler-mcp-server --help
+```
+
+Just configure your AI assistant to use `npx @tranzact/tempo-filler-mcp-server` as the command.
+
+### Global Installation
+
+If you prefer to install globally:
+
+```bash
+npm install -g @tranzact/tempo-filler-mcp-server
+
+# Verify installation
+tempo-filler-mcp-server --help
+```
+
+### Development Setup (Source)
+
+For development or customization:
+
+1. **Clone the repository**:
 
    ```bash
-   # Option 1: Clone with Git
-   git clone https://github.com/TRANZACT/tempo-filler-mcp-server.git
-   cd tempo-filler-mcp-server
-   
-   # Option 2: Download ZIP
-   # - Go to GitHub repository page
-   # - Click "Code" → "Download ZIP" 
-   # - Extract and navigate to the folder
+   git clone https://github.com/TRANZACT/TempoFiller.git
+   cd TempoFiller
    ```
 
-2. **Install dependencies**:
+2. **Install dependencies and build**:
 
    ```bash
-   npm install
+   npm install && npm run build
    ```
-
-3. **Build the server**:
-
-   ```bash
-   npm run build
-   ```
-
-4. **Get your JIRA credentials** (see [Authentication Setup](#authentication-setup) below)
 
 ## Configuration
 
@@ -158,22 +195,19 @@ The server requires environment variables for authentication and configuration:
 
 ## Usage with AI Assistants
 
-### GitHub Copilot Configuration (VS Code)
+### GitHub Copilot Configuration
 
-Add to your MCP servers configuration file (e.g., `mcp.json`):
+Add to your MCP servers configuration (typically in VS Code settings):
 
 ```json
 {
-  "servers": {
+  "github.copilot.chat.mcp.servers": {
     "tempo-filler": {
-      "type": "stdio", 
-      "command": "node",
-      "args": [
-        "/full/path/to/tempo-filler-mcp-server/dist/index.js"
-      ],
+      "command": "npx",
+      "args": ["@tranzact/tempo-filler-mcp-server"],
       "env": {
-        "TEMPO_BASE_URL": "https://jira.company.com",
-        "TEMPO_PAT": "your-personal-access-token-here"
+        "TEMPO_BASE_URL": "https://your-jira-instance.com",
+        "TEMPO_PAT": "your-personal-access-token"
       }
     }
   }
@@ -182,7 +216,42 @@ Add to your MCP servers configuration file (e.g., `mcp.json`):
 
 ### Claude Desktop Configuration
 
-Add to your Claude Desktop config file:
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "tempo-filler": {
+      "command": "npx", 
+      "args": ["@tranzact/tempo-filler-mcp-server"],
+      "env": {
+        "TEMPO_BASE_URL": "https://your-jira-instance.com",
+        "TEMPO_PAT": "your-personal-access-token"
+      }
+    }
+  }
+}
+```
+
+### Alternative: Local Installation
+
+If you have the package installed globally or built from source:
+
+```json
+{
+  "mcpServers": {
+    "tempo-filler": {
+      "command": "tempo-filler-mcp-server",
+      "env": {
+        "TEMPO_BASE_URL": "https://your-jira-instance.com",
+        "TEMPO_PAT": "your-personal-access-token"
+      }
+    }
+  }
+}
+```
+
+### Or with Node.js directly (development):
 
 ```json
 {
@@ -475,25 +544,54 @@ This server is compatible with:
 
 ## Troubleshooting
 
-### Setup Issues
+### NPX Issues (Recommended Installation)
 
-**Server not found / Path issues:**
+**NPX command not found or fails:**
 
-- Ensure you're using the **full absolute path** to `dist/index.js`
-- On Windows: `C:\Users\YourName\tempo-filler-mcp-server\dist\index.js`
-- On macOS/Linux: `/Users/YourName/tempo-filler-mcp-server/dist/index.js`
+- Ensure you have Node.js 16+ installed: `node --version`
+- Update npm: `npm install -g npm@latest`
+- Try with explicit version: `npx @tranzact/tempo-filler-mcp-server@latest`
+- Clear npx cache: `npx --yes @tranzact/tempo-filler-mcp-server`
+
+**Server takes too long to start with npx:**
+
+- The first run downloads the package, subsequent runs are faster
+- Consider global installation for better performance: `npm install -g @tranzact/tempo-filler-mcp-server`
+
+**Permission errors with npx:**
+
+- On macOS/Linux, ensure user has write permissions to npm directories
+- Try: `npm config set prefix ~/.npm-global` and add to PATH
+
+### AI Assistant Integration Issues
+
+**AI Assistant not loading the server:**
+
+- Restart your AI assistant completely after adding the configuration
+- Verify JSON syntax in configuration files
+- Check that environment variables are set correctly
+- For npx usage, ensure the command is exactly `npx` with args `["@tranzact/tempo-filler-mcp-server"]`
+
+**Configuration Examples Not Working:**
+
+- For Claude Desktop: Configuration file location varies by OS
+  - Windows: `%APPDATA%/Claude/claude_desktop_config.json`
+  - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+  - Linux: `~/.config/claude/claude_desktop_config.json`
+
+### Local Installation Issues
+
+**Server not found / Path issues (local installation):**
+
+- Use full absolute paths when configuring with `node` command
 - Verify the file exists: `ls dist/index.js` (should show the file)
+- For global installation, verify binary is in PATH: `which tempo-filler-mcp-server`
 
 **Build failures:**
 
 - Check Node.js version: `node --version` (should be 16+)
 - Clear cache and retry: `npm cache clean --force && npm install && npm run build`
 - Check for error messages in the build output
-
-**AI Assistant not loading the server:**
-
-- Restart your AI assistant completely after adding the configuration
-- Check the configuration file syntax (valid JSON)
 - Verify environment variables are set correctly
 
 ### Authentication Issues

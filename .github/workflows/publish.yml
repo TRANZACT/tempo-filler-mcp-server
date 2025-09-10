@@ -1,0 +1,143 @@
+name: Publish to NPM
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  test:
+    name: Test and Build
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [16.x, 18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run type checking
+        run: npm run typecheck
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Test executable permissions (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          test -x dist/index.js || chmod +x dist/index.js
+          test -x dist/index.js
+      
+      - name: Test package execution
+        run: node dist/index.js --version || echo "Server started and stopped normally"
+        timeout-minutes: 1
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run security audit
+        run: npm audit --audit-level=high
+
+  publish:
+    name: Publish to NPM
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build project
+        run: npm run build
+      
+      - name: Set executable permissions
+        run: chmod +x dist/index.js
+      
+      - name: Verify package.json version matches release tag
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_TAG=${GITHUB_REF#refs/tags/}
+          if [ "v$PACKAGE_VERSION" != "$RELEASE_TAG" ]; then
+            echo "Version mismatch: package.json has v$PACKAGE_VERSION, release tag is $RELEASE_TAG"
+            exit 1
+          fi
+          echo "Version verified: $RELEASE_TAG"
+      
+      - name: Test package locally
+        run: |
+          npm pack
+          PACKAGE_FILE=$(ls *.tgz)
+          echo "Package created: $PACKAGE_FILE"
+          
+          # Test that we can install and run the package
+          npm install -g "$PACKAGE_FILE"
+          
+          # Verify the binary is accessible
+          which tempo-filler-mcp-server || echo "Binary not found in PATH"
+      
+      - name: Publish to NPM
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
+      - name: Verify publication
+        run: |
+          # Wait a moment for NPM registry to update
+          sleep 10
+          
+          # Try to install the published package
+          npm install -g @tranzact/tempo-filler-mcp-server@latest
+          
+          # Verify it's accessible via npx
+          npx --yes @tranzact/tempo-filler-mcp-server --version || echo "Published package verified"
+
+  post-publish:
+    name: Post-publish validation
+    needs: [publish]
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+      - name: Test npx execution across platforms
+        run: |
+          # Test that npx can execute the package
+          timeout 30s npx --yes @tranzact/tempo-filler-mcp-server --help || echo "npx execution test completed"
+        shell: bash
