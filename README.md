@@ -1,20 +1,10 @@
-# Tempo Filler MCP Server
+# ⏰ Tempo Filler MCP Server
 
 [![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Install in Claude Desktop](https://img.shields.io/badge/claude_desktop-install_tempo--filler-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v1.0.1/bundle.dxt)
 
 A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.
 
-## Table of Contents
-
-- [Quick Start](#quick-start)
-- [How This Was Built](#how-this-was-built)
-- [Features](#features)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Available Tools](#available-tools)
-- [Real-World Usage Examples](#real-world-usage-examples)
-
-## Quick Start
+## 🚀 Quick Start
 
 ### Install in VS Code
 
@@ -26,6 +16,8 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
 
 1. Download the MCP bundle first
 2. Then go to settings → extensions and drag the file there to install.
+3. Fill up the Tempo Base URL and PAT in the environment variables section.
+4. Don't forget to **enable it**.
 
 ### Install Manually on your favorite AI Assistant
 
@@ -44,7 +36,7 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
    }
    ```
 
-## How This Was Built
+## 🛠️ How This Was Built
 
 This MCP server was built in just **3 hours** using AI-powered development tools, demonstrating the power of modern AI-assisted coding:
 
@@ -73,7 +65,7 @@ This MCP server was built in just **3 hours** using AI-powered development tools
 
 This project showcases how AI-powered development can dramatically accelerate the creation of robust, production-ready tools.
 
-## Features
+## ✨ Features
 
 - **Get Worklogs**: Retrieve worklogs for users with date range and issue filtering
 - **Create Worklogs**: Add single worklog entries with automatic issue resolution
@@ -82,7 +74,7 @@ This project showcases how AI-powered development can dramatically accelerate th
 - **Resource Access**: Browse worklog data and recent issues
 - **Prompt Templates**: Generate analysis prompts for worklog data
 
-## Installation
+## 📦 Installation
 
 ### Prerequisites
 
@@ -117,7 +109,7 @@ For development or customization:
    npm install && npm run build
    ```
 
-## Configuration
+## ⚙️ Configuration
 
 The server requires environment variables for authentication and configuration:
 
@@ -139,7 +131,7 @@ The server requires environment variables for authentication and configuration:
 5. Set appropriate permissions (read/write access to issues and worklogs)
 6. Copy the token value for use in `TEMPO_PAT`
 
-## Available Tools
+## 🛠️ Available Tools
 
 ### 1. `get_worklogs` - Retrieve Time Logs
 
@@ -228,7 +220,7 @@ Delete an existing worklog entry by ID.
 → Removes the specified worklog entry
 ```
 
-## Real-World Usage Examples
+## 🌎 Real-World Usage Examples
 
 Based on successful implementation, here are practical scenarios:
 
@@ -271,7 +263,7 @@ AI: 📊 Total Hours: 184 hours (23 entries)
     Completion: 100% (all weekdays filled)
 ```
 
-## Development
+## 🤖 Development
 
 ### Project Structure
 
