@@ -53,7 +53,7 @@ const tempoClient = new TempoClient(config);
 const server = new Server(
   {
     name: "tempofiller",
-    version: "1.0.0",
+    version: "1.0.2",
   },
   {
     capabilities: {

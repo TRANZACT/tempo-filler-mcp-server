@@ -4,7 +4,7 @@
 
 TempoFiller is a production-ready Model Context Protocol (MCP) server that bridges AI assistants with Tempo (JIRA's time tracking plugin), enabling automated worklog management. Built in TypeScript using modern ES modules, it provides comprehensive tools for retrieving, creating, and managing time entries through AI interfaces like Claude, GitHub Copilot, and other MCP-compatible assistants.
 
-**Current Status**: Published as `@tranzact/tempo-filler-mcp-server` v1.0.1 on NPM registry with full npx support for zero-friction installation.
+**Current Status**: Published as `@tranzact/tempo-filler-mcp-server` v1.0.2 on NPM registry with full npx support for zero-friction installation.
 
 ## Architecture & Components
 
@@ -254,7 +254,7 @@ This project demonstrates the power of AI-assisted development for creating prod
 
 ### Production Deployment ✅
 
-- **NPM Publication**: Successfully published as `@tranzact/tempo-filler-mcp-server` v1.0.1
+- **NPM Publication**: Successfully published as `@tranzact/tempo-filler-mcp-server` v1.0.2
 - **NPX Support**: Zero-friction installation with `npx @tranzact/tempo-filler-mcp-server`
 - **Cross-Platform**: Verified working on Windows with PowerShell and Unix-like systems
 - **Bundle Distribution**: Available as downloadable bundle (.dxt) for Claude Desktop
