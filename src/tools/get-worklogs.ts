@@ -89,10 +89,10 @@ export async function getWorklogs(
         displayText += `• **${key}** (${issueSummary}): ${hours}h (${data.entries} entries)\n`;
       }
 
-      // Show recent entries (limit to 10 most recent)
+      // Show recent entries (limit to 100 most recent)
       const recentWorklogs = worklogs
         .sort((a, b) => b.started.localeCompare(a.started))
-        .slice(0, 10);
+        .slice(0, 100);
 
       if (recentWorklogs.length > 0) {
         displayText += `\n**Recent Entries:**\n`;
@@ -107,8 +107,9 @@ export async function getWorklogs(
         }
       }
 
-      if (worklogs.length > 10) {
-        displayText += `\n*Showing 10 most recent of ${worklogs.length} total entries*\n`;
+      if (worklogs.length > 100) {
+        displayText += `\n*Showing 100 most recent of ${worklogs.length} total entries*\n`;
+        displayText += `*💡 Tip: Use a shorter date range or specific issueKey filter for more targeted results*\n`;
       }
     }
 
