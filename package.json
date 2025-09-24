@@ -4,8 +4,8 @@
   "description": "Model Context Protocol (MCP) server for Tempo worklog management in JIRA - enables AI assistants to create, retrieve, and manage time entries",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "build:unix": "tsc && chmod +x dist/index.js",
+    "build": "tsc && npx @anthropic-ai/mcpb pack bundle dist/tempo-filler-mcp-server.mcpb",
+    "build:unix": "tsc && chmod +x dist/index.js && npx @anthropic-ai/mcpb pack bundle dist/tempo-filler-mcp-server.mcpb",
     "dev": "tsc && node dist/index.js",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
