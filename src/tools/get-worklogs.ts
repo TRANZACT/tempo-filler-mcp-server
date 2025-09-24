@@ -1,8 +1,9 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { format, parseISO } from "date-fns";
 import { TempoClient } from "../tempo-client.js";
-import { 
-  GetWorklogsInput, 
-  TempoWorklog, 
+import {
+  GetWorklogsInput,
+  TempoWorklog,
   GetWorklogsResponse,
   TempoWorklogResponse
 } from "../types/index.js";
@@ -97,9 +98,18 @@ export async function getWorklogs(
       if (recentWorklogs.length > 0) {
         displayText += `\n**Recent Entries:**\n`;
         for (const worklog of recentWorklogs) {
-          const date = worklog.started.split('T')[0];
+          // Extract date part from datetime string (handles both "2025-09-12 00:00:00.000" and "2025-09-12T00:00:00.000")
+          const datePart = worklog.started.split(/[T\s]/)[0];
+
+          // Parse and format the human-readable date
+          const parsedDate = parseISO(datePart);
+          const humanReadableDate = format(parsedDate, "EEEE, MMMM do, yyyy");
+
+          // Create hybrid format: ISO date + human-readable in parentheses
+          const formattedDate = `${datePart} (${humanReadableDate})`;
+
           const hours = (worklog.timeSpentSeconds / 3600).toFixed(1);
-          let entryText = `• ${date}: **${worklog.issueKey}** (${worklog.issueSummary}) - ${hours}h - [ID: ${worklog.id}]`;
+          let entryText = `• ${formattedDate}: **${worklog.issueKey}** (${worklog.issueSummary}) - ${hours}h - [ID: ${worklog.id}]`;
           if (worklog.comment && worklog.comment.trim()) {
             entryText += ` - "${worklog.comment}"`;
           }
