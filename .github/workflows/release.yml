@@ -38,7 +38,7 @@ jobs:
         run: npm run build
 
       - name: Package MCP bundle
-        run: npx @anthropic-ai/mcpb pack
+        run: npx @anthropic-ai/mcpb pack bundle
 
       - name: Verify bundle exists
         run: |
