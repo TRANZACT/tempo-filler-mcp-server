@@ -1,11 +1,13 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import { 
-  JiraIssue, 
-  TempoWorklogResponse, 
+import {
+  JiraIssue,
+  TempoWorklogResponse,
   TempoWorklogCreatePayload,
   TempoClientConfig,
   IssueCache,
-  TempoApiError
+  TempoApiError,
+  TempoScheduleResponse,
+  GetScheduleParams
 } from "./types/index.js";
 
 export class TempoClient {
@@ -239,6 +241,54 @@ export class TempoClient {
         throw new Error(`Failed to retrieve worklogs: ${method} ${url} returned ${status}. ${responseData?.message || JSON.stringify(responseData)}`);
       }
       throw new Error(`Failed to retrieve worklogs: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Get work schedule using Tempo Core API v2 schedule search endpoint
+   * Automatically filters by the authenticated user
+   * Uses the /rest/tempo-core/2/user/schedule/search endpoint
+   */
+  async getSchedule(params: GetScheduleParams): Promise<TempoScheduleResponse[]> {
+    // Get the current authenticated user
+    const currentUser = await this.getCurrentUser();
+
+    console.error(`📅 SCHEDULE SEARCH: Processing request for params:`, JSON.stringify(params));
+    console.error(`👤 USER: Using authenticated user ${currentUser}`);
+
+    try {
+      const { startDate, endDate } = params;
+      const actualEndDate = endDate || startDate;
+
+      const searchParams = {
+        from: startDate,
+        to: actualEndDate,
+        userKeys: [currentUser]
+      };
+
+      console.error(`🔍 TEMPO SCHEDULE SEARCH: Sending request with:`, JSON.stringify(searchParams));
+
+      const response = await this.axiosInstance.post(
+        `/rest/tempo-core/2/user/schedule/search`,
+        searchParams
+      );
+
+      console.error(`📊 TEMPO SCHEDULE RESPONSE: Received ${Array.isArray(response.data) ? response.data.length : 'non-array'} results`);
+
+      const results = Array.isArray(response.data) ? response.data : [];
+
+      return results;
+
+    } catch (error) {
+      console.error(`❌ ERROR in getSchedule:`, error);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const url = error.config?.url;
+        const method = error.config?.method?.toUpperCase();
+        const responseData = error.response?.data;
+        throw new Error(`Failed to retrieve schedule: ${method} ${url} returned ${status}. ${responseData?.message || JSON.stringify(responseData)}`);
+      }
+      throw new Error(`Failed to retrieve schedule: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

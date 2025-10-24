@@ -181,3 +181,59 @@ export interface RecentIssue {
   lastUsed: string;       // ISO datetime
   project?: string;
 }
+
+// Tempo Schedule API response structures
+
+// Individual schedule day
+export interface TempoScheduleDay {
+  date: string;           // ISO date (YYYY-MM-DD)
+  requiredSeconds: number; // Required work seconds for this day
+  type: "WORKING_DAY" | "NON_WORKING_DAY";
+}
+
+// Schedule summary information
+export interface TempoScheduleSummary {
+  numberOfWorkingDays: number;
+  requiredSeconds: number; // Total required seconds for the period
+  days: TempoScheduleDay[];
+}
+
+// User information in schedule response
+export interface TempoScheduleUser {
+  username: string;
+  displayName: string;
+  key: string;
+}
+
+// Complete Tempo Schedule API response
+export interface TempoScheduleResponse {
+  schedule: TempoScheduleSummary;
+  user: TempoScheduleUser;
+}
+
+// Get schedule request parameters
+export interface GetScheduleParams {
+  startDate: string;      // ISO date (YYYY-MM-DD)
+  endDate?: string;       // ISO date, defaults to startDate
+}
+
+// Processed schedule day for MCP responses
+export interface ScheduleDay {
+  date: string;           // ISO date
+  formattedDate: string;  // Human-readable date
+  requiredHours: number;  // Required hours (converted from seconds)
+  isWorkingDay: boolean;
+  type: "Working Day" | "Non-Working Day";
+}
+
+// Get schedule response
+export interface GetScheduleResponse {
+  days: ScheduleDay[];
+  summary: {
+    totalDays: number;
+    workingDays: number;
+    nonWorkingDays: number;
+    totalRequiredHours: number;
+    averageDailyHours: number;
+  };
+}

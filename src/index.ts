@@ -12,12 +12,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { TempoClient } from "./tempo-client.js";
-import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog } from "./tools/index.js";
+import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog, getSchedule } from "./tools/index.js";
 import {
   GetWorklogsInputSchema,
   PostWorklogInputSchema,
   BulkPostWorklogsInputSchema,
   DeleteWorklogInputSchema,
+  GetScheduleInputSchema,
   TOOL_NAMES,
   ENV_VARS,
   DEFAULTS,
@@ -94,7 +95,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: TOOL_NAMES.POST_WORKLOG,
-        description: "Create a new worklog entry",
+        description: "Create a new worklog entry. For better results, consider using get_schedule first to verify working days and expected hours.",
         inputSchema: {
           type: "object",
           properties: {
@@ -132,7 +133,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: TOOL_NAMES.BULK_POST_WORKLOGS,
-        description: "Create multiple worklog entries from a structured format",
+        description: "Create multiple worklog entries from a structured format. RECOMMENDED: Use get_schedule first to identify working days and avoid logging time on non-working days.",
         inputSchema: {
           type: "object",
           properties: {
@@ -187,6 +188,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["worklogId"],
         },
       },
+      {
+        name: TOOL_NAMES.GET_SCHEDULE,
+        description: "Retrieve work schedule for authenticated user and date range",
+        inputSchema: {
+          type: "object",
+          properties: {
+            startDate: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+              description: "Start date in YYYY-MM-DD format",
+            },
+            endDate: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+              description: "End date in YYYY-MM-DD format (optional, defaults to startDate)",
+            },
+          },
+          required: ["startDate"],
+        },
+      },
     ],
   };
 });
@@ -215,6 +236,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case TOOL_NAMES.DELETE_WORKLOG: {
         const input = DeleteWorklogInputSchema.parse(args);
         return await deleteWorklog(tempoClient, input);
+      }
+
+      case TOOL_NAMES.GET_SCHEDULE: {
+        const input = GetScheduleInputSchema.parse(args);
+        return await getSchedule(tempoClient, input);
       }
 
       default:
@@ -298,6 +324,27 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => {
           },
         ],
       },
+      {
+        name: "schedule_aware_bulk_entry",
+        description: "Guide AI assistants through schedule-first bulk worklog creation",
+        arguments: [
+          {
+            name: "dateRange",
+            description: "Date range in natural language (e.g., 'this month', 'October 2025')",
+            required: true,
+          },
+          {
+            name: "issueKey",
+            description: "JIRA issue key for time entries",
+            required: true,
+          },
+          {
+            name: "hoursPerDay",
+            description: "Hours per working day (default: 8)",
+            required: false,
+          },
+        ],
+      },
     ],
   };
 });
@@ -308,7 +355,7 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
   if (name === "worklog_summary") {
     const username = args?.username || "user";
     const month = args?.month || new Date().toISOString().slice(0, 7);
-    
+
     return {
       messages: [
         {
@@ -320,6 +367,36 @@ server.setRequestHandler(GetPromptRequestSchema, async (request) => {
 - Distribution across projects
 - Daily patterns
 - Missing days or potential gaps`,
+          },
+        },
+      ],
+    };
+  }
+
+  if (name === "schedule_aware_bulk_entry") {
+    const dateRange = args?.dateRange || "this month";
+    const issueKey = args?.issueKey || "PROJ-XXXX";
+    const hoursPerDay = args?.hoursPerDay || 8;
+
+    return {
+      messages: [
+        {
+          role: "user",
+          content: {
+            type: "text",
+            text: `I need to create bulk worklog entries for ${dateRange} on ${issueKey}. Please follow this schedule-aware workflow:
+
+1. FIRST: Use the get_schedule tool to check my work schedule for ${dateRange}
+2. ANALYZE: Review the schedule results to identify:
+   - Total working days
+   - Non-working days to avoid
+   - Expected hours per day
+3. THEN: Use bulk_post_worklogs to create entries ONLY for working days
+4. CONFIGURE: Use ${hoursPerDay} hours per working day (or match the schedule requirements)
+
+This approach ensures accurate time entry without conflicts with non-working days, holidays, or weekends.
+
+Start by checking my schedule for ${dateRange}.`,
           },
         },
       ],

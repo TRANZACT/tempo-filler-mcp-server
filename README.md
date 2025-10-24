@@ -36,6 +36,73 @@ A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This 
    }
    ```
 
+## 💬 Real Usage Example
+
+Here's an actual conversation showing how natural and powerful the interaction can be:
+
+---
+
+**👤 User:**
+> fill my october hours with the same project from september
+
+**🤖 AI Assistant:**
+> I'll help you fill your October hours with the same project from September. Let me first check your September worklogs to understand the pattern, then fill October accordingly.
+
+```json
+🔧 mcp_tempo-filler-_get_worklogs({
+  "startDate": "2025-09-01",
+  "endDate": "2025-09-30"
+})
+```
+
+> Perfect! I can see you worked on **PROJ-1234** (Tempo MCP Server) for 200 hours in September. Now let me get your October work schedule to see which days need to be filled.
+
+```json
+🔧 mcp_tempo-filler-_get_schedule({
+  "startDate": "2025-10-01", 
+  "endDate": "2025-10-31"
+})
+```
+
+> Excellent! I now have all the information needed. Let me fill all 23 working days in October with the Tempo MCP Server project using 8 hours per working day.
+
+```json
+🔧 mcp_tempo-filler-_bulk_post_worklogs({
+  "billable": true,
+  "worklogs": [
+    {"issueKey": "PROJ-1234", "hours": 8, "date": "2025-10-01", "description": "Tempo MCP Server development"},
+    {"issueKey": "PROJ-1234", "hours": 8, "date": "2025-10-02", "description": "Tempo MCP Server development"},
+    // ... 21 more entries for all working days
+  ]
+})
+```
+
+> ✅ **October Hours Filled Successfully**
+> 
+> - **Project**: PROJ-1234 (Tempo MCP Server)
+> - **Total Hours**: 184 hours across 23 working days
+> - **Hours per Day**: 8 hours (matching your standard work schedule)
+> - **Status**: All entries created successfully with no failures
+> 
+> **Tool Calls Made:**
+> - `get_worklogs` - Retrieved September pattern (PROJ-1234, 200h)
+> - `get_schedule` - Found 23 working days in October (184h capacity)
+> - `bulk_post_worklogs` - Created 23 entries in one operation
+> 
+> Your October timesheet is now complete and matches the same project pattern you used in September!
+
+---
+
+**🎯 What Happened Here:**
+- **3 Tool Calls**: `get_worklogs` → `get_schedule` → `bulk_post_worklogs`
+- **Smart Pattern Recognition**: Automatically identified PROJ-1234 from September data
+- **Schedule Awareness**: Only filled working days, skipped weekends automatically  
+- **Bulk Operations**: Created 23 worklog entries in a single API call
+- **Error-Free Execution**: 100% success rate with proper validation
+- **Natural Language**: No need to remember issue keys, dates, or tool syntax
+
+**⏱️ Time Saved**: This single natural language request triggered 3 MCP tool calls and replaced hours of manual timesheet entry!
+
 ## 🛠️ How This Was Built
 
 This MCP server was built in just **3 hours** using AI-powered development tools, demonstrating the power of modern AI-assisted coding:
@@ -220,6 +287,33 @@ Delete an existing worklog entry by ID.
 → Removes the specified worklog entry
 ```
 
+### 5. `get_schedule` - Retrieve Work Schedule
+
+Retrieve work schedule information showing working days, non-working days, and expected hours per day.
+
+**Parameters:**
+
+- `startDate` (string): Start date in YYYY-MM-DD format
+- `endDate` (string, optional): End date, defaults to startDate
+
+**Example Usage:**
+
+```
+"What's my work schedule for October 2025?"
+→ Returns: ## Work Schedule (2025-10-01 to 2025-10-31)
+
+          **Period Summary:**
+          - Total Days: 31
+          - Working Days: 23
+          - Non-Working Days: 8
+          - Total Required Hours: 184h
+
+"Show me working days this week"
+→ Returns schedule for current week with working/non-working day breakdown
+```
+
+**💡 Integration Tip:** Use this tool before bulk worklog operations to identify working days and avoid logging time on weekends/holidays.
+
 ## 🌎 Real-World Usage Examples
 
 Based on successful implementation, here are practical scenarios:
@@ -237,16 +331,49 @@ AI: ✅ Worklog Created Successfully
     Time Spent: 1d
 ```
 
-### Monthly Time Filling  
+### Schedule-First Bulk Time Filling
 
 ```bash
-# Bulk operation for entire month:
+# RECOMMENDED: Check schedule first, then create entries:
+User: "Check my October schedule, then fill all working days with 8 hours on PROJ-1234"
+AI: ## Work Schedule (2025-10-01 to 2025-10-31)
+    **Period Summary:**
+    - Working Days: 23
+    - Non-Working Days: 8
+    - Total Required Hours: 184h
+
+    ✅ Bulk Worklog Creation Started
+    Processing 23 worklog entries (working days only)...
+    ✅ Successful: 23
+    ❌ Failed: 0
+    📊 Total Hours: 184
+```
+
+### Monthly Time Filling (Legacy)
+
+```bash
+# Direct bulk operation (may include non-working days):
 User: "Fill all weekdays in July with 8 hours on PROJ-1234"
 AI: ✅ Bulk Worklog Creation Started
     Processing 23 worklog entries...
     ✅ Successful: 23
-    ❌ Failed: 0  
+    ❌ Failed: 0
     📊 Total Hours: 184
+```
+
+### Schedule-Aware Planning
+
+```bash
+# Smart time planning workflow:
+User: "What's my capacity this month and how should I distribute my time?"
+AI: ## Work Schedule (2025-10-01 to 2025-10-31)
+    - Working Days: 23
+    - Total Required Hours: 184h
+    - Average Daily Hours: 8h
+
+    **💡 Next Steps - Schedule-Aware Time Logging:**
+    - Total capacity is 184h across 23 working days
+    - Example: "Fill all working days shown above with 8 hours on PROJ-1234"
 ```
 
 ### Time Tracking Analysis
@@ -255,10 +382,10 @@ AI: ✅ Bulk Worklog Creation Started
 # Monthly summary:
 User: "Get my July hours"
 AI: 📊 Total Hours: 184 hours (23 entries)
-    
+
     Breakdown by issue:
     • PROJ-1234: 184.0h (23 entries)
-    
+
     Daily pattern: 8 hours per weekday
     Completion: 100% (all weekdays filled)
 ```
