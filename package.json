@@ -1,6 +1,6 @@
 {
   "name": "@tranzact/tempo-filler-mcp-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Model Context Protocol (MCP) server for Tempo worklog management in JIRA - enables AI assistants to create, retrieve, and manage time entries",
   "main": "dist/index.js",
   "scripts": {
