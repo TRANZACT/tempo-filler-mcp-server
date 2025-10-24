@@ -8,7 +8,8 @@
     "build:unix": "tsc && chmod +x dist/index.js && npx @anthropic-ai/mcpb pack bundle dist/tempo-filler-mcp-server.mcpb",
     "dev": "tsc && node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "version": "node scripts/update-version.js && git add -A"
   },
   "files": [
     "dist/**/*",

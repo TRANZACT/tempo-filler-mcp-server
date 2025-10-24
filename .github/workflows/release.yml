@@ -1,0 +1,97 @@
+name: Create Release
+
+# Triggers when a version tag (e.g., v1.0.3) is pushed to the repository
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Ensure only one release creation runs at a time
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write  # Required to create releases and upload assets
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for accurate release notes
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Package MCP bundle
+        run: npx @anthropic-ai/mcpb pack
+
+      - name: Verify bundle exists
+        run: |
+          if [ ! -f "bundle.dxt" ]; then
+            echo "Error: bundle.dxt not found after running mcpb pack"
+            exit 1
+          fi
+          echo "Bundle created successfully: $(ls -lh bundle.dxt)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Auto-generate release notes from commit messages
+          generate_release_notes: true
+
+          # Attach the MCP bundle as a downloadable asset
+          files: |
+            bundle.dxt
+
+          # Release configuration
+          draft: false
+          prerelease: false
+
+          # Make the release notes more informative
+          body: |
+            ## Installation
+
+            ### NPM (Recommended)
+            ```bash
+            npx @tranzact/tempo-filler-mcp-server
+            ```
+
+            ### Claude Desktop
+            Download the `bundle.dxt` file below and drag it to Claude Desktop settings → extensions to install.
+
+            ### Manual Configuration
+            Add to your MCP client configuration:
+            ```json
+            {
+              "mcpServers": {
+                "tempo-filler": {
+                  "command": "npx",
+                  "args": ["@tranzact/tempo-filler-mcp-server"],
+                  "env": {
+                    "TEMPO_BASE_URL": "https://your-jira-instance.com",
+                    "TEMPO_PAT": "your-personal-access-token"
+                  }
+                }
+              }
+            }
+            ```
+
+            ---
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
