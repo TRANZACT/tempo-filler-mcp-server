@@ -46,27 +46,57 @@ import {
   DEFAULTS,
 } from "./types/index.js";
 
-// Environment configuration
-const config = {
-  baseUrl: process.env[ENV_VARS.TEMPO_BASE_URL] || '',
-  personalAccessToken: process.env[ENV_VARS.TEMPO_PAT] || '',
+// Environment configuration - supports both Cloud and Server/DC modes
+// Cloud mode: separate Jira (Basic auth) and Tempo (Bearer auth) credentials
+// Server/DC mode: single base URL + PAT (backward compatible)
+
+// Resolve env vars with fallback names
+const jiraBaseUrl = process.env[ENV_VARS.JIRA_BASE_URL] || process.env[ENV_VARS.ATLASSIAN_URL] || '';
+const jiraEmail = process.env[ENV_VARS.JIRA_EMAIL] || process.env[ENV_VARS.ATLASSIAN_EMAIL] || '';
+const jiraApiToken = process.env[ENV_VARS.JIRA_API_TOKEN] || process.env[ENV_VARS.ATLASSIAN_API_KEY] || '';
+const tempoToken = process.env[ENV_VARS.TEMPO_TOKEN] || process.env[ENV_VARS.TEMPO_PAT] || '';
+const tempoBaseUrl = process.env[ENV_VARS.TEMPO_BASE_URL] || '';
+
+const isCloudMode = !!(jiraBaseUrl && jiraEmail && jiraApiToken && tempoToken);
+
+const config = isCloudMode ? {
+  // Cloud mode
+  jiraBaseUrl,
+  jiraEmail,
+  jiraApiToken,
+  tempoBaseUrl: tempoBaseUrl || 'https://api.tempo.io',
+  tempoToken,
+  defaultHours: parseInt(process.env[ENV_VARS.TEMPO_DEFAULT_HOURS] || String(DEFAULTS.HOURS_PER_DAY)),
+} : {
+  // Server/DC mode (backward compatible)
+  baseUrl: tempoBaseUrl || process.env[ENV_VARS.TEMPO_BASE_URL] || '',
+  personalAccessToken: tempoToken || process.env[ENV_VARS.TEMPO_PAT] || '',
   defaultHours: parseInt(process.env[ENV_VARS.TEMPO_DEFAULT_HOURS] || String(DEFAULTS.HOURS_PER_DAY)),
 };
 
 // Debug logging
-console.error(`Debug: ${ENV_VARS.TEMPO_BASE_URL} = ${config.baseUrl ? '[CONFIGURED]' : '[MISSING]'}`);
-console.error(`Debug: ${ENV_VARS.TEMPO_PAT} = ${config.personalAccessToken ? '[CONFIGURED - length: ' + config.personalAccessToken.length + ']' : '[MISSING]'}`);
-console.error(`Debug: ${ENV_VARS.TEMPO_DEFAULT_HOURS} = ${config.defaultHours}`);
-
-// Validate required configuration
-if (!config.baseUrl) {
-  console.error(`Error: ${ENV_VARS.TEMPO_BASE_URL} environment variable is required`);
-  process.exit(1);
+if (isCloudMode) {
+  console.error(`Mode: Cloud`);
+  console.error(`  Jira URL: ${jiraBaseUrl ? '[CONFIGURED]' : '[MISSING]'}`);
+  console.error(`  Jira Email: ${jiraEmail ? '[CONFIGURED]' : '[MISSING]'}`);
+  console.error(`  Jira API Token: ${jiraApiToken ? '[CONFIGURED]' : '[MISSING]'}`);
+  console.error(`  Tempo Token: ${tempoToken ? '[CONFIGURED]' : '[MISSING]'}`);
+} else {
+  console.error(`Mode: Server/DC`);
+  console.error(`  Base URL: ${config.baseUrl ? '[CONFIGURED]' : '[MISSING]'}`);
+  console.error(`  PAT: ${config.personalAccessToken ? '[CONFIGURED]' : '[MISSING]'}`);
 }
 
-if (!config.personalAccessToken) {
-  console.error(`Error: ${ENV_VARS.TEMPO_PAT} environment variable is required`);
-  process.exit(1);
+// Validate required configuration
+if (!isCloudMode) {
+  if (!config.baseUrl) {
+    console.error(`Error: Set TEMPO_BASE_URL (Server/DC) or JIRA_BASE_URL + JIRA_EMAIL + JIRA_API_TOKEN + TEMPO_TOKEN (Cloud)`);
+    process.exit(1);
+  }
+  if (!config.personalAccessToken) {
+    console.error(`Error: Set TEMPO_PAT (Server/DC) or TEMPO_TOKEN (Cloud)`);
+    process.exit(1);
+  }
 }
 
 // Initialize Tempo client

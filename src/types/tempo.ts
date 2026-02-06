@@ -159,16 +159,27 @@ export interface DeleteWorklogParams {
 
 // Configuration for Tempo client
 export interface TempoClientConfig {
-  baseUrl: string;        // JIRA instance URL
-  personalAccessToken: string; // PAT for authentication
+  // Server/DC mode (backward compatible)
+  baseUrl?: string;              // JIRA instance URL (Server/DC)
+  personalAccessToken?: string;  // PAT for Server/DC authentication
+
+  // Cloud mode (separate Jira + Tempo endpoints)
+  jiraBaseUrl?: string;          // e.g., https://instance.atlassian.net
+  jiraEmail?: string;            // Email for Jira Basic auth
+  jiraApiToken?: string;         // Jira API token for Basic auth
+  tempoBaseUrl?: string;         // e.g., https://api.tempo.io (default)
+  tempoToken?: string;           // Tempo PAT for Bearer auth
+
+  // Common
   defaultHours?: number;  // Default hours per workday (8)
   timeout?: number;       // Request timeout in milliseconds
 }
 
 // Issue cache entry for performance optimization
 export interface IssueCache {
-  [issueKey: string]: {
+  [issueKeyOrId: string]: {
     id: string;
+    key?: string;
     summary: string;
     cached: Date;
   };

@@ -101,8 +101,17 @@ export const RESOURCE_NAMES = {
 // Environment variable names
 export const ENV_VARS = {
   TEMPO_BASE_URL: "TEMPO_BASE_URL",
-  TEMPO_PAT: "TEMPO_PAT", 
+  TEMPO_PAT: "TEMPO_PAT",
   TEMPO_DEFAULT_HOURS: "TEMPO_DEFAULT_HOURS",
+  // Cloud mode env vars
+  JIRA_BASE_URL: "JIRA_BASE_URL",
+  JIRA_EMAIL: "JIRA_EMAIL",
+  JIRA_API_TOKEN: "JIRA_API_TOKEN",
+  TEMPO_TOKEN: "TEMPO_TOKEN",
+  // Alternative names (Atlassian-style)
+  ATLASSIAN_URL: "ATLASSIAN_URL",
+  ATLASSIAN_EMAIL: "ATLASSIAN_EMAIL",
+  ATLASSIAN_API_KEY: "ATLASSIAN_API_KEY",
 } as const;
 
 // Default configuration values
