@@ -3,21 +3,28 @@ export type BatchResult<T> =
   | { ok: false; error: string; cause?: unknown };
 
 export interface BatchConfig {
-  /** Maximum number of worklog POSTs to issue in parallel within one chunk. Default: 5. */
+  /** Maximum number of worklog POSTs to issue in parallel within one chunk. Default: 10. */
   concurrencyLimit: number;
   /** How many times to retry a single entry on rate-limit or timeout errors. Default: 3. */
   maxRetries: number;
   /** Base delay (ms) for exponential back-off between retries. Default: 1000. */
   baseDelayMs: number;
-  /** Fixed pause (ms) between consecutive chunks to avoid bursting the API. Default: 500. */
+  /** Fixed pause (ms) between consecutive chunks to avoid bursting the API. Default: 200. */
   interBatchDelayMs: number;
+  /**
+   * Number of consecutive full-chunk failures before aborting remaining chunks.
+   * A "full-chunk failure" is a chunk where every item fails after all retries.
+   * Defaults to `concurrencyLimit` when omitted.
+   */
+  consecutiveFailureLimit?: number;
 }
 
 export const DEFAULT_BATCH_CONFIG: BatchConfig = {
-  concurrencyLimit: 5,
+  concurrencyLimit: 10,
   maxRetries: 3,
   baseDelayMs: 1000,
-  interBatchDelayMs: 500,
+  interBatchDelayMs: 200,
+  consecutiveFailureLimit: 10,
 };
 
 export type BatchEntryStatus = "succeeded" | "failed" | "skipped";

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
+import { TempoRateLimitError, TempoTimeoutError, TempoNotFoundError } from "./errors.js";
 
 describe("TempoRateLimitError", () => {
   it("parses retry-after header", () => {
@@ -26,5 +26,19 @@ describe("TempoTimeoutError", () => {
     expect(error.url).toBe("https://jira.example.com/api");
     expect(error.name).toBe("TempoTimeoutError");
     expect(error).toBeInstanceOf(Error);
+  });
+});
+
+describe("TempoNotFoundError", () => {
+  it("captures the resourceId", () => {
+    const error = new TempoNotFoundError("wl-42");
+    expect(error.resourceId).toBe("wl-42");
+    expect(error.name).toBe("TempoNotFoundError");
+    expect(error).toBeInstanceOf(Error);
+  });
+
+  it("formats message with worklog id", () => {
+    const error = new TempoNotFoundError("wl-42");
+    expect(error.message).toBe("Worklog wl-42 not found.");
   });
 });
