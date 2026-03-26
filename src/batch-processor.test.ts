@@ -10,7 +10,7 @@ import {
 } from "./__test-utils__/mock-client.js";
 import { fakeWorklogResponse } from "./__test-utils__/fixtures.js";
 import type { BulkWorklogEntry, BulkUpdateWorklogEntry } from "./types/index.js";
-import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
+import { TempoRateLimitError, TempoTimeoutError, TempoNotFoundError } from "./errors.js";
 
 function makeClient(overrides?: {
   issueResolver?: Partial<ReturnType<typeof createMockIssueResolver>>;
@@ -191,6 +191,68 @@ describe("executeChunked", () => {
     const results = await executeChunked([], async () => {}, NO_DELAY_CONFIG);
     expect(results).toHaveLength(0);
   });
+
+  it("trips circuit breaker after consecutiveFailureLimit consecutive full-chunk failures", async () => {
+    const called: string[] = [];
+    const items = ["a", "b", "c", "d", "e", "f"];
+
+    const results = await executeChunked(
+      items,
+      async (item) => {
+        called.push(item);
+        throw new Error("API down");
+      },
+      { concurrencyLimit: 2, maxRetries: 1, baseDelayMs: 0, interBatchDelayMs: 0, consecutiveFailureLimit: 2 }
+    );
+
+    // Chunks: [a,b], [c,d], [e,f]. First 2 chunks fully fail → limit reached → [e,f] aborted
+    expect(results).toHaveLength(6);
+    expect(called).toEqual(expect.arrayContaining(["a", "b", "c", "d"]));
+    expect(called).not.toContain("e");
+    expect(called).not.toContain("f");
+    expect(results[0].ok).toBe(false);
+    expect(results[2].ok).toBe(false);
+    const abortedE = results[4] as { ok: false; error: string };
+    const abortedF = results[5] as { ok: false; error: string };
+    expect(abortedE.error).toMatch(/Circuit breaker/);
+    expect(abortedF.error).toMatch(/Circuit breaker/);
+  });
+
+  it("resets circuit breaker counter when a chunk has at least one success", async () => {
+    // Chunks: ["fail","fail"], ["ok","fail"], ["fail","fail"]
+    // Counter after chunk1=1, after chunk2=0 (reset by "ok"), after chunk3=1 → never reaches limit of 2
+    const called: string[] = [];
+    const items = ["fail", "fail", "ok", "fail", "fail", "fail"];
+
+    const results = await executeChunked(
+      items,
+      async (item) => {
+        called.push(item);
+        if (item === "fail") throw new Error("fail");
+      },
+      { concurrencyLimit: 2, maxRetries: 1, baseDelayMs: 0, interBatchDelayMs: 0, consecutiveFailureLimit: 2 }
+    );
+
+    expect(called).toHaveLength(6);
+    expect(results).toHaveLength(6);
+    expect(results[2].ok).toBe(true);
+  });
+
+  it("result array length equals input length including circuit-breaker aborted items", async () => {
+    const items = Array.from({ length: 10 }, (_, i) => String(i));
+
+    const results = await executeChunked(
+      items,
+      async () => { throw new Error("API down"); },
+      { concurrencyLimit: 3, maxRetries: 1, baseDelayMs: 0, interBatchDelayMs: 0, consecutiveFailureLimit: 1 }
+    );
+
+    // Chunk [0,1,2] fails → circuit trips → [3..9] aborted
+    expect(results).toHaveLength(10);
+    expect(results.every((r) => !r.ok)).toBe(true);
+    const aborted = results.slice(3) as Array<{ ok: false; error: string }>;
+    expect(aborted.every((r) => r.error.includes("Circuit breaker"))).toBe(true);
+  });
 });
 
 describe("processDeleteBatch", () => {
@@ -225,6 +287,18 @@ describe("processDeleteBatch", () => {
     const failedEntry = report.entries.find((e) => e.worklogId === "wl-2");
     expect(failedEntry?.status).toBe("failed");
     expect(failedEntry?.error).toBe("Not found");
+  });
+
+  it("treats TempoNotFoundError as success (idempotent: already-gone = deleted)", async () => {
+    const client = createMockWorklogDeleter({
+      deleteWorklog: async (id: string) => {
+        if (id === "wl-1") throw new TempoNotFoundError(id);
+      },
+    });
+    const report = await processDeleteBatch(client, ["wl-1", "wl-2"], NO_DELAY_CONFIG);
+    expect(report.summary.succeeded).toBe(2);
+    expect(report.summary.failed).toBe(0);
+    expect(report.entries.find((e) => e.worklogId === "wl-1")?.status).toBe("succeeded");
   });
 
   it("deduplicates repeated IDs", async () => {

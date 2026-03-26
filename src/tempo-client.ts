@@ -19,7 +19,7 @@ import {
   PostWorklogParams,
 } from "./types/index.js";
 import { DEFAULTS } from "./types/index.js";
-import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
+import { TempoRateLimitError, TempoTimeoutError, TempoNotFoundError } from "./errors.js";
 
 export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter, WorklogDeleter, WorklogUpdater, ScheduleReader, UserResolver {
   private axiosInstance: AxiosInstance;
@@ -45,14 +45,16 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     // Add request interceptor for debugging
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        console.error(`DEBUG: Making ${config.method?.toUpperCase()} request to ${config.baseURL}${config.url}`);
-        if (config.data) {
-          console.error(`DEBUG: Request body:`, JSON.stringify(config.data, null, 2));
+        if (process.env.DEBUG) {
+          console.error(`DEBUG: Making ${config.method?.toUpperCase()} request to ${config.baseURL}${config.url}`);
+          if (config.data) {
+            console.error(`DEBUG: Request body:`, JSON.stringify(config.data, null, 2));
+          }
         }
         return config;
       },
       (error) => {
-        console.error(`DEBUG: Request error:`, error);
+        if (process.env.DEBUG) console.error(`DEBUG: Request error:`, error);
         return Promise.reject(error);
       }
     );
@@ -60,13 +62,13 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     // Add response interceptor for error handling
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        console.error(`DEBUG: Response ${response.status} from ${response.config.url}`);
+        if (process.env.DEBUG) console.error(`DEBUG: Response ${response.status} from ${response.config.url}`);
         return response;
       },
       (error) => {
         if (axios.isAxiosError(error)) {
-          console.error(`DEBUG: Response error ${error.response?.status} from ${error.config?.url}`);
           if (process.env.DEBUG) {
+            console.error(`DEBUG: Response error ${error.response?.status} from ${error.config?.url}`);
             console.error(`DEBUG: Error response:`, error.response?.data);
           }
 
@@ -150,9 +152,15 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
 
       const issue = response.data;
 
-      // Evict cache if at capacity
+      // Evict oldest entry (LRU) when at capacity, preserving the rest of the cache
       if (Object.keys(this.issueCache).length >= DEFAULTS.MAX_CACHE_SIZE) {
-        this.issueCache = {};
+        let oldestKey = "";
+        let oldestTime = Infinity;
+        for (const [key, entry] of Object.entries(this.issueCache)) {
+          const time = entry.cached.getTime();
+          if (time < oldestTime) { oldestTime = time; oldestKey = key; }
+        }
+        if (oldestKey) delete this.issueCache[oldestKey];
       }
 
       // Cache the result
@@ -362,7 +370,7 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
       await this.axiosInstance.delete(`/rest/tempo-timesheets/4/worklogs/${worklogId}`);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        throw new Error(`Worklog ${worklogId} not found.`, { cause: error });
+        throw new TempoNotFoundError(worklogId);
       }
       throw new Error(`Failed to delete worklog: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
@@ -388,7 +396,7 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
       return worklogs[0];
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        throw new Error(`Worklog ${worklogId} not found.`, { cause: error });
+        throw new TempoNotFoundError(worklogId);
       }
       if (axios.isAxiosError(error) && error.response?.data) {
         const apiError = error.response.data as TempoApiError;

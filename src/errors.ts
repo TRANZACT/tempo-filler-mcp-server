@@ -18,3 +18,13 @@ export class TempoTimeoutError extends Error {
     this.url = url;
   }
 }
+
+export class TempoNotFoundError extends Error {
+  readonly resourceId: string;
+
+  constructor(resourceId: string) {
+    super(`Worklog ${resourceId} not found.`);
+    this.name = "TempoNotFoundError";
+    this.resourceId = resourceId;
+  }
+}

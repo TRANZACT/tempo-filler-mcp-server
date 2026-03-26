@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { updateWorklog } from "./update-worklog.js";
+import { TempoNotFoundError } from "../errors.js";
 import {
   createMockIssueResolver,
   createMockWorklogUpdater,
@@ -40,7 +41,7 @@ describe("updateWorklog", () => {
   it("returns error result when worklog is not found (404 / not found message)", async () => {
     const client = makeFakeClient({
       worklogUpdater: {
-        updateWorklog: async () => { throw new Error("Worklog wl-999 not found."); },
+        updateWorklog: async () => { throw new TempoNotFoundError("wl-999"); },
       },
     });
     const result = await updateWorklog(client, { ...validInput, worklogId: "wl-999" });

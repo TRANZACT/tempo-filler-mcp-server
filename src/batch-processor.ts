@@ -19,10 +19,33 @@ import type {
   UpdateEntryResult,
 } from "./types/batch.js";
 import { DEFAULT_BATCH_CONFIG } from "./types/batch.js";
-import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
+import { TempoRateLimitError, TempoTimeoutError, TempoNotFoundError } from "./errors.js";
 
 type BatchDependencies = IssueResolver & WorklogReader & WorklogWriter & UserResolver;
 type UpdateDependencies = WorklogUpdater & IssueResolver & UserResolver;
+
+/**
+ * Fetches existing worklog fingerprints for the date range covered by `entries`.
+ * Returns an empty Set (non-fatal) if the fetch fails.
+ */
+async function fetchFingerprints(
+  client: WorklogReader,
+  entries: readonly BulkWorklogEntry[]
+): Promise<Set<string>> {
+  const fingerprints = new Set<string>();
+  try {
+    const dates = entries.map((e) => e.date).sort();
+    const existing = await client.getWorklogs({ from: dates[0], to: dates[dates.length - 1] });
+    for (const wl of existing) {
+      const date = wl.started.split(/[T\s]/)[0];
+      const fp = buildFingerprint(date, wl.issue.key, wl.timeSpentSeconds, wl.comment ?? "");
+      fingerprints.add(fp);
+    }
+  } catch {
+    console.error("Warning: pre-flight dedup failed, proceeding without deduplication");
+  }
+  return fingerprints;
+}
 
 function buildFingerprint(date: string, issueKey: string, seconds: number, comment: string): string {
   return `${date}|${issueKey}|${seconds}|${comment.trim().toLowerCase()}`;
@@ -58,6 +81,10 @@ async function retryable<T>(
  * runs each chunk concurrently via `Promise.allSettled`, with each item wrapped in `retryable`.
  * Pauses `config.interBatchDelayMs` between chunks.
  *
+ * Circuit breaker: if `config.consecutiveFailureLimit` consecutive chunks all fail entirely,
+ * remaining chunks are aborted and marked failed immediately. This prevents minutes of
+ * pointless retrying when the API is down. A single success in any chunk resets the counter.
+ *
  * Strategy Pattern: the `operation` function varies (create/update/delete) while the
  * chunking/retry algorithm stays fixed. This is the single authoritative implementation
  * of batch execution used by all bulk tools.
@@ -73,6 +100,9 @@ export async function executeChunked<T>(
     chunks.push(items.slice(i, i + config.concurrencyLimit) as T[]);
   }
 
+  const circuitBreakerLimit = config.consecutiveFailureLimit ?? config.concurrencyLimit;
+  let consecutiveFullChunkFailures = 0;
+
   for (let ci = 0; ci < chunks.length; ci++) {
     if (ci > 0) await delay(config.interBatchDelayMs);
     const chunk = chunks[ci];
@@ -81,9 +111,12 @@ export async function executeChunked<T>(
         retryable(() => operation(item), config.maxRetries, config.baseDelayMs)
       )
     );
+
+    let chunkAllFailed = true;
     for (const result of settled) {
       if (result.status === "fulfilled") {
         results.push({ ok: true, value: undefined });
+        chunkAllFailed = false;
       } else {
         results.push({
           ok: false,
@@ -91,6 +124,18 @@ export async function executeChunked<T>(
           cause: result.reason,
         });
       }
+    }
+
+    consecutiveFullChunkFailures = chunkAllFailed ? consecutiveFullChunkFailures + 1 : 0;
+
+    if (consecutiveFullChunkFailures >= circuitBreakerLimit) {
+      const circuitError = `Circuit breaker: aborting after ${consecutiveFullChunkFailures} consecutive full-chunk failures`;
+      for (let ri = ci + 1; ri < chunks.length; ri++) {
+        for (const _item of chunks[ri]) {
+          results.push({ ok: false, error: circuitError });
+        }
+      }
+      break;
     }
   }
 
@@ -116,38 +161,28 @@ export async function processWorklogBatch(
 ): Promise<BatchReport> {
   const billable = options?.billable ?? true;
 
-  // Phase 1: Resolve unique issue keys
+  // Phase 1 + Phase 2: Resolve unique issue keys and fetch dedup fingerprints in parallel
   const uniqueKeys = [...new Set(entries.map((e) => e.issueKey))];
   const issueResults = new Map<string, { ok: boolean; id: string; summary: string; error?: string }>();
-  await Promise.all(
-    uniqueKeys.map(async (key) => {
-      try {
-        const issue = await client.getIssueById(key);
-        issueResults.set(key, { ok: true, id: issue.id, summary: issue.fields.summary });
-      } catch (error) {
-        issueResults.set(key, {
-          ok: false,
-          id: "",
-          summary: "",
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    })
-  );
 
-  // Phase 2: Pre-flight deduplication
-  const fingerprints = new Set<string>();
-  try {
-    const dates = entries.map((e) => e.date).sort();
-    const existing = await client.getWorklogs({ from: dates[0], to: dates[dates.length - 1] });
-    for (const wl of existing) {
-      const date = wl.started.split(/[T\s]/)[0];
-      const fp = buildFingerprint(date, wl.issue.key, wl.timeSpentSeconds, wl.comment ?? "");
-      fingerprints.add(fp);
-    }
-  } catch {
-    console.error("Warning: pre-flight dedup failed, proceeding without deduplication");
-  }
+  const [, fingerprints] = await Promise.all([
+    Promise.all(
+      uniqueKeys.map(async (key) => {
+        try {
+          const issue = await client.getIssueById(key);
+          issueResults.set(key, { ok: true, id: issue.id, summary: issue.fields.summary });
+        } catch (error) {
+          issueResults.set(key, {
+            ok: false,
+            id: "",
+            summary: "",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })
+    ),
+    fetchFingerprints(client, entries),
+  ]);
 
   // Phase 3: Chunked execution
   const results: BatchEntryResult[] = [];
@@ -174,26 +209,33 @@ export async function processWorklogBatch(
     pending.push(entry);
   }
 
-  const createdWorklogs = new Map<BulkWorklogEntry, string>();
-  const chunkResults = await executeChunked(
-    pending,
-    async (entry) => {
-      const payload = await client.createWorklogPayload({
+  // Pre-build payloads in parallel (all cache hits at this point)
+  const payloads = await Promise.all(
+    pending.map(async (entry) => ({
+      entry,
+      payload: await client.createWorklogPayload({
         issueKey: entry.issueKey,
         hours: entry.hours,
         startDate: entry.date,
         endDate: entry.date,
         billable,
         description: entry.description,
-      });
+      }),
+    }))
+  );
+
+  const createdWorklogs = new Map<BulkWorklogEntry, string>();
+  const chunkResults = await executeChunked(
+    payloads,
+    async ({ entry, payload }) => {
       const wl = await client.createWorklog(payload);
       createdWorklogs.set(entry, String(wl.tempoWorklogId ?? wl.id ?? "unknown"));
     },
     config
   );
 
-  for (let i = 0; i < pending.length; i++) {
-    const entry = pending[i];
+  for (let i = 0; i < payloads.length; i++) {
+    const { entry } = payloads[i];
     const result = chunkResults[i];
     if (result.ok) {
       results.push({
@@ -245,7 +287,17 @@ export async function processDeleteBatch(
   const uniqueIds = [...new Set(worklogIds)];
   const chunkResults = await executeChunked(
     uniqueIds,
-    (id) => client.deleteWorklog(id),
+    async (id) => {
+      try {
+        await client.deleteWorklog(id);
+      } catch (error) {
+        // 404 = already gone — idempotent success for batch operations.
+        // This also handles the timeout-then-retry case: the first attempt
+        // timed out but the server processed the delete; the retry gets 404.
+        if (error instanceof TempoNotFoundError) return;
+        throw error;
+      }
+    },
     config
   );
 
@@ -313,25 +365,31 @@ export async function processUpdateBatch(
     }
   }
 
-  // Phase 2: Chunked execution
-  const chunkResults = await executeChunked(
-    valid,
-    async (entry) => {
-      const payload = await client.createWorklogPayload({
+  // Phase 2: Pre-build payloads in parallel (all cache hits at this point), then chunked execution
+  const payloads = await Promise.all(
+    valid.map(async (entry) => ({
+      entry,
+      payload: await client.createWorklogPayload({
         issueKey: entry.issueKey,
         hours: entry.hours,
         startDate: entry.date,
         endDate: entry.date,
         billable,
         description: entry.description,
-      });
+      }),
+    }))
+  );
+
+  const chunkResults = await executeChunked(
+    payloads,
+    async ({ entry, payload }) => {
       await client.updateWorklog(entry.worklogId, payload);
     },
     config
   );
 
-  for (let i = 0; i < valid.length; i++) {
-    const entry = valid[i];
+  for (let i = 0; i < payloads.length; i++) {
+    const { entry } = payloads[i];
     const result = chunkResults[i];
     resultMap.set(entry, {
       worklogId: entry.worklogId,
