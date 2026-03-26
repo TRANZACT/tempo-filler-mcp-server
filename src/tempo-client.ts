@@ -13,6 +13,7 @@ import {
   WorklogReader,
   WorklogWriter,
   WorklogDeleter,
+  WorklogUpdater,
   ScheduleReader,
   UserResolver,
   PostWorklogParams,
@@ -20,7 +21,7 @@ import {
 import { DEFAULTS } from "./types/index.js";
 import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
 
-export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter, WorklogDeleter, ScheduleReader, UserResolver {
+export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter, WorklogDeleter, WorklogUpdater, ScheduleReader, UserResolver {
   private axiosInstance: AxiosInstance;
   private issueCache: IssueCache = {};
   private config: TempoClientConfig;
@@ -96,6 +97,11 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     );
   }
 
+  /**
+   * Returns the authenticated JIRA user key (e.g. `"jsmith"`).
+   * The result is cached indefinitely for the lifetime of the client instance;
+   * the underlying fetch is only issued once even under concurrent callers.
+   */
   async getCurrentUser(): Promise<string> {
     if (!this.currentUserPromise) {
       this.currentUserPromise = this.fetchCurrentUser();
@@ -118,6 +124,12 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Resolves a JIRA issue key to its full issue object.
+   * Results are cached with a 5-minute TTL; the cache is evicted wholesale when it
+   * exceeds `MAX_CACHE_SIZE` entries.
+   * @throws {Error} if the issue is not found (HTTP 404).
+   */
   async getIssueById(issueKey: string): Promise<JiraIssue> {
     // Check cache first
     const cached = this.issueCache[issueKey];
@@ -159,6 +171,12 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Fetches worklogs for the authenticated user within a date range.
+   * - Without `issueKey`: queries the Tempo search endpoint and filters server-side by the authenticated user.
+   * - With `issueKey`: fetches via the JIRA issue worklog endpoint and filters client-side by author.
+   * @throws {Error} if `from` or `to` are missing, or if the API call fails.
+   */
   async getWorklogs(params: {
     from: string;
     to: string;
@@ -262,6 +280,11 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Fetches the authenticated user's work schedule from the Tempo Core API.
+   * If `endDate` is omitted, the schedule covers only `startDate`.
+   * @throws {Error} if the API call fails.
+   */
   async getSchedule(params: GetScheduleParams): Promise<TempoScheduleResponse[]> {
     const currentUser = await this.getCurrentUser();
 
@@ -303,6 +326,11 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Creates a single worklog entry via the Tempo API.
+   * Use `createWorklogPayload` to build the payload before calling this method.
+   * @throws {Error} if the API returns an unexpected format or an error response.
+   */
   async createWorklog(payload: TempoWorklogCreatePayload): Promise<TempoWorklogResponse> {
     try {
       const response: AxiosResponse<TempoWorklogResponse[]> = await this.axiosInstance.post(
@@ -325,6 +353,10 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Deletes a worklog by its Tempo worklog ID.
+   * @throws {Error} with a clear message if the worklog is not found (HTTP 404).
+   */
   async deleteWorklog(worklogId: string): Promise<void> {
     try {
       await this.axiosInstance.delete(`/rest/tempo-timesheets/4/worklogs/${worklogId}`);
@@ -336,14 +368,50 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     }
   }
 
+  /**
+   * Updates an existing worklog entry via the Tempo API.
+   * Use `createWorklogPayload` to build the payload before calling this method.
+   * @throws {Error} if the worklog is not found (HTTP 404) or the API returns an error.
+   */
+  async updateWorklog(worklogId: string, payload: TempoWorklogCreatePayload): Promise<TempoWorklogResponse> {
+    try {
+      const response: AxiosResponse<TempoWorklogResponse[]> = await this.axiosInstance.put(
+        `/rest/tempo-timesheets/4/worklogs/${worklogId}`,
+        payload
+      );
+
+      const worklogs = response.data;
+      if (!Array.isArray(worklogs) || worklogs.length === 0) {
+        throw new Error('Unexpected response format from Tempo API');
+      }
+
+      return worklogs[0];
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        throw new Error(`Worklog ${worklogId} not found.`, { cause: error });
+      }
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const apiError = error.response.data as TempoApiError;
+        throw new Error(`Failed to update worklog: ${apiError.message || error.message}`, { cause: error });
+      }
+      throw new Error(`Failed to update worklog: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    }
+  }
+
+  /** Converts decimal hours to whole seconds (rounds to nearest integer). */
   hoursToSeconds(hours: number): number {
     return Math.round(hours * 3600);
   }
 
+  /** Converts seconds to decimal hours, rounded to 2 decimal places. */
   secondsToHours(seconds: number): number {
     return Math.round((seconds / 3600) * 100) / 100;
   }
 
+  /**
+   * Builds a `TempoWorklogCreatePayload` by resolving the issue key to a numeric ID
+   * and fetching the authenticated user identity. Pass the result to `createWorklog`.
+   */
   async createWorklogPayload(params: PostWorklogParams): Promise<TempoWorklogCreatePayload> {
     const issue = await this.getIssueById(params.issueKey);
     const currentUser = await this.getCurrentUser();
@@ -369,10 +437,12 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
     return payload;
   }
 
+  /** Evicts all entries from the in-memory issue cache. Useful in tests or after bulk operations. */
   clearIssueCache(): void {
     this.issueCache = {};
   }
 
+  /** Returns the number of issue entries currently held in the cache. */
   getCachedIssueCount(): number {
     return Object.keys(this.issueCache).length;
   }

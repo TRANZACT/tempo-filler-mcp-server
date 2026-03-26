@@ -21,6 +21,10 @@ export interface ErrorHint {
   tip: string;
 }
 
+/**
+ * Appends a contextual tip to an error message when it matches a known pattern.
+ * Returns the original message unchanged if no hint pattern matches.
+ */
 export function enhanceErrorMessage(message: string, hints: ReadonlyArray<ErrorHint>): string {
   for (const hint of hints) {
     if (message.includes(hint.pattern)) {
@@ -34,6 +38,11 @@ export function secondsToHours(seconds: number): number {
   return Math.round((seconds / 3600) * 100) / 100;
 }
 
+/**
+ * Flattens the first user's schedule from a Tempo schedule API response into a flat
+ * array of enriched day objects (human-readable day-of-week, hours instead of seconds).
+ * Returns an empty array when the response is empty.
+ */
 export function mapScheduleDays(responses: TempoScheduleResponse[]): ScheduleDayResponse[] {
   if (!responses.length) return [];
   const { days } = responses[0].schedule;
@@ -45,6 +54,10 @@ export function mapScheduleDays(responses: TempoScheduleResponse[]): ScheduleDay
   }));
 }
 
+/**
+ * Asserts that `endDate`, when provided, is not before `startDate`.
+ * Both dates must be ISO strings (YYYY-MM-DD). Throws if the range is inverted.
+ */
 export function validateDateRange(startDate: string, endDate?: string): void {
   if (endDate && endDate < startDate) {
     throw new Error(`End date (${endDate}) cannot be before start date (${startDate})`);

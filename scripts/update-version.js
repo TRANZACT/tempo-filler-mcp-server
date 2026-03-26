@@ -25,10 +25,10 @@ const DRY_RUN = process.argv.includes('--dry-run');
 
 const FILES_TO_UPDATE = [
   {
-    name: 'src/index.ts',
-    path: path.join(PROJECT_ROOT, 'src', 'index.ts'),
-    pattern: /version:\s*"[0-9]+\.[0-9]+\.[0-9]+"/,
-    replacement: (version) => `version: "${version}"`
+    name: 'src/server-core.ts',
+    path: path.join(PROJECT_ROOT, 'src', 'server-core.ts'),
+    pattern: /SERVER_VERSION\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"/,
+    replacement: (version) => `SERVER_VERSION = "${version}"`
   },
   {
     name: 'README.md',

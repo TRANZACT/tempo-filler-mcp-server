@@ -14,9 +14,12 @@ import {
   PostWorklogInputSchema,
   BulkPostWorklogsInputSchema,
   DeleteWorklogInputSchema,
+  UpdateWorklogInputSchema,
+  BulkDeleteWorklogsInputSchema,
+  BulkUpdateWorklogsInputSchema,
   GetScheduleInputSchema,
 } from "./types/index.js";
-import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog, getSchedule } from "./tools/index.js";
+import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog, updateWorklog, bulkDeleteWorklogs, bulkUpdateWorklogs, getSchedule } from "./tools/index.js";
 import type { UiAssets } from "./server-core.js";
 
 export function registerHandlers(server: Server, tempoClient: TempoClient, uiAssets: UiAssets): void {
@@ -116,6 +119,80 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
         },
       },
       {
+        name: TOOL_NAMES.UPDATE_WORKLOG,
+        description: "Update an existing worklog entry (change hours, description, issue, or date)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            worklogId: { type: "string", description: "Tempo worklog ID to update" },
+            issueKey: { type: "string", description: "JIRA issue key (e.g., PROJ-1234)" },
+            hours: { type: "number", minimum: 0.1, maximum: 24, description: "Hours worked (decimal)" },
+            startDate: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+              description: "Start date in YYYY-MM-DD format",
+            },
+            endDate: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+              description: "End date in YYYY-MM-DD format (optional, defaults to startDate)",
+            },
+            billable: { type: "boolean", description: "Whether the time is billable (default: true)" },
+            description: { type: "string", description: "Work description (optional)" },
+          },
+          required: ["worklogId", "issueKey", "hours", "startDate"],
+        },
+      },
+      {
+        name: TOOL_NAMES.BULK_DELETE_WORKLOGS,
+        description:
+          "Delete multiple worklog entries by their IDs. Use get_worklogs first to retrieve worklog IDs for a date range, then pass them here for efficient bulk deletion.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            worklogIds: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+              maxItems: 100,
+              description: "Array of Tempo worklog IDs to delete",
+            },
+          },
+          required: ["worklogIds"],
+        },
+      },
+      {
+        name: TOOL_NAMES.BULK_UPDATE_WORKLOGS,
+        description:
+          "Update multiple existing worklog entries. Use get_worklogs first to retrieve current worklogs and their IDs.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            worklogs: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  worklogId: { type: "string", description: "Tempo worklog ID to update" },
+                  issueKey: { type: "string", description: "JIRA issue key (e.g., PROJ-1234)" },
+                  hours: { type: "number", minimum: 0.1, maximum: 24, description: "Hours worked (decimal)" },
+                  date: {
+                    type: "string",
+                    pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+                    description: "Date in YYYY-MM-DD format",
+                  },
+                  description: { type: "string", description: "Work description (optional)" },
+                },
+                required: ["worklogId", "issueKey", "hours", "date"],
+              },
+              description: "Array of worklog entries to update",
+            },
+            billable: { type: "boolean", description: "Whether the time is billable for all entries (default: true)" },
+          },
+          required: ["worklogs"],
+        },
+      },
+      {
         name: TOOL_NAMES.GET_SCHEDULE,
         description: "Retrieve work schedule for authenticated user and date range",
         inputSchema: {
@@ -152,6 +229,12 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
         return bulkPostWorklogs(tempoClient, BulkPostWorklogsInputSchema.parse(args));
       case TOOL_NAMES.DELETE_WORKLOG:
         return deleteWorklog(tempoClient, DeleteWorklogInputSchema.parse(args));
+      case TOOL_NAMES.UPDATE_WORKLOG:
+        return updateWorklog(tempoClient, UpdateWorklogInputSchema.parse(args));
+      case TOOL_NAMES.BULK_DELETE_WORKLOGS:
+        return bulkDeleteWorklogs(tempoClient, BulkDeleteWorklogsInputSchema.parse(args));
+      case TOOL_NAMES.BULK_UPDATE_WORKLOGS:
+        return bulkUpdateWorklogs(tempoClient, BulkUpdateWorklogsInputSchema.parse(args));
       case TOOL_NAMES.GET_SCHEDULE:
         return getSchedule(tempoClient, GetScheduleInputSchema.parse(args), uiAssets.getScheduleHtml);
       default: {

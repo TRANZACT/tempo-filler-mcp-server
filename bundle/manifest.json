@@ -1,7 +1,7 @@
 {
   "dxt_version": "0.2",
   "name": "TempoFiller MCP Server",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.",
   "author": {
     "name": "JuanjoFuchs",
@@ -51,10 +51,10 @@
   },
   "tools": [
     { "name": "get_worklogs", "description": "Retrieve worklogs for authenticated user and date range" },
-    { "name": "post_worklog", "description": "Create a new worklog entry" },
-    { "name": "bulk_post_worklogs", "description": "Create multiple worklog entries" },
+    { "name": "post_worklog", "description": "Create a new worklog entry. For better results, consider using get_schedule first to verify working days and expected hours." },
+    { "name": "bulk_post_worklogs", "description": "Create multiple worklog entries from a structured format. RECOMMENDED: Use get_schedule first to identify working days." },
     { "name": "delete_worklog", "description": "Delete an existing worklog entry" },
-    { "name": "get_schedule", "description": "Retrieve work schedule for authenticated user" }
+    { "name": "get_schedule", "description": "Retrieve work schedule for authenticated user and date range" }
   ],
   "license": "ISC",
   "repository": {
