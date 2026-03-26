@@ -1,6 +1,6 @@
 # ⏰ Tempo Filler MCP Server
 
-[![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Download Desktop Extension](https://img.shields.io/badge/Claude_Desktop-Download_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.3/bundle.dxt)
+[![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Download Desktop Extension](https://img.shields.io/badge/Claude_Desktop-Download_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
 
 A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, update, bulk operations, and deletion.
 
@@ -42,7 +42,7 @@ Check your work schedule with a visual calendar:
 
 ### Install in Claude Desktop
 
-[![Download Desktop Extension](https://img.shields.io/badge/Download-Desktop_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.3/bundle.dxt)
+[![Download Desktop Extension](https://img.shields.io/badge/Download-Desktop_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
 
 1. Click the button above to download the desktop extension (`.dxt` file)
 2. Open Claude Desktop and go to **Settings** → **Extensions**
@@ -489,8 +489,11 @@ src/
 | Force (non-main branch) | `npm run release -- --force` | `node scripts/release.js --force` | Skips branch guard (e.g. release candidates) |
 | Force + minor | `npm run release -- --force minor` | `node scripts/release.js --force minor` | Force minor bump from non-main branch |
 | Dry-run + force | `npm run release -- --dry-run --force` | `node scripts/release.js --dry-run --force` | Preview from non-main, no changes |
-| Dev/test `.dxt` (any branch) | `npm run build:all` | `npm run build:all` | Compiles + packages `.dxt`. No version bump, commit, or tag. Safe anywhere. |
+| Dev build (bump, no commit/tag) | `npm run release -- --dev` | `node scripts/release.js --dev` | Bumps version, syncs files, builds `.dxt`. No commit or tag created. Revert with `git checkout --`. |
+| Dev build + minor bump | `npm run release -- --dev minor` | `node scripts/release.js --dev minor` | Same as above but bumps minor version. |
+| Dev/test `.dxt` (no bump) | `npm run build:all` | `npm run build:all` | Compiles + packages `.dxt` with current version. No bump, commit, or tag. Safe anywhere. |
 | TypeScript only | `npm run build` | `npm run build` | `tsc` + Vite UI build. Output to `dist/`. |
+| Downgrade version (manual) | `npm version 2.0.3 --no-git-tag-version --force && node scripts/update-version.js` | `npm version 2.0.3 --no-git-tag-version --force; node scripts/update-version.js` | Sets an exact lower version. No commit or tag. `release.js` blocks downgrades by design. |
 
 > **Why two columns?** PowerShell does not reliably forward arguments after `--` in `npm run <script> -- <args>`. The `node scripts/release.js <args>` form works identically in **all shells** (Bash, Git Bash, PowerShell, cmd). When in doubt, use the direct `node` command.
 
@@ -514,8 +517,8 @@ What happens under the hood:
 2. **Version validation** — ensures target version > current version (no downgrades)
 3. **`npm version <patch|minor|major|X.Y.Z>`** — bumps `package.json`, triggers the `"version"` lifecycle script:
    - `scripts/update-version.js` syncs the new version to `server-core.ts`, `README.md`, `bundle/manifest.json`
-   - `git add -A` stages all synced files
-   - npm auto-commits and creates a `vX.Y.Z` tag
+   - `git add package.json src/server-core.ts README.md bundle/manifest.json` stages exactly those files (no unrelated dirty files swept in)
+   - npm auto-commits with message `"release: vX.Y.Z"` and creates a `vX.Y.Z` tag
 4. **`npm run build:all`** — compiles TypeScript + UI, re-syncs version (safety net), syncs tool descriptions from `TOOL_REGISTRY` to manifest, packages `.dxt`
 5. **Done locally** — you now have a `.dxt` file and a tagged commit ready to push
 
@@ -527,9 +530,11 @@ After `git push --follow-tags`:
 
 - **Version numbers are never edited manually.** They flow from `package.json` via `scripts/update-version.js` to all other files.
 - **Tool descriptions** are defined once in `TOOL_REGISTRY` (`src/types/mcp.ts`) and propagate to both the MCP server runtime and the `.dxt` manifest at build time via `scripts/sync-manifest.js`.
+- **`--dev` flag** — bumps version and builds `.dxt` without creating a commit or tag. Use on feature branches to test a preliminary `.dxt`. Revert modified files with `git checkout -- package.json src/server-core.ts README.md bundle/manifest.json`.
 - **`npm run build:all` is always safe** — it never creates commits, tags, or version bumps. Use it freely on any branch for testing.
 - **`npm run release` creates commits and tags** — only use it when you're ready to publish. The branch guard prevents accidental releases from feature branches.
 - **`node scripts/release.js <args>` works in all shells** — use this form in PowerShell, cmd, or any environment where `npm run release -- <args>` doesn't forward arguments correctly.
+- **Downgrades are blocked by `release.js`** — the script validates that the target version is strictly greater than the current. To force a lower version, run `npm version <target> --no-git-tag-version --force && node scripts/update-version.js` (PowerShell: replace `&&` with `;`) to update `package.json` and sync all files without committing.
 
 ## License
 

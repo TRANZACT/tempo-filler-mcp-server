@@ -67,11 +67,26 @@ AI Assistant → MCP Server → TempoClient → [JIRA API + Tempo API] → Respo
 3. `release.yml` (on `v*` tag) → builds, packages `.dxt`, creates GitHub Release.
 4. `publish.yml` (on release publish) → matrix tests (Node 18/20/22 × 3 OS), audit, version check, `npm publish --provenance`.
 
-### Dev/testing builds (any branch, no version bump)
-`npm run build:all` — compiles and packages `.dxt` with the current version. No commits, no tags, no CI triggers. Use freely on feature branches for testing.
+### Dev/testing builds (any branch)
+- `node scripts/release.js --dev` — bumps version, syncs all files, builds `.dxt`, but creates no commit or tag. Revert with `git checkout -- package.json src/server-core.ts README.md bundle/manifest.json`.
+- `npm run build:all` — builds `.dxt` with the current version (no bump). Safe anywhere.
 
 ### How version sync works
 - **Source of truth:** `package.json` version field.
 - **`scripts/update-version.js`** syncs version to `server-core.ts`, `README.md`, `bundle/manifest.json`. Runs automatically during `npm version` (lifecycle hook) and as a safety net during `build:mcpb`.
 - **`scripts/sync-manifest.js`** syncs tool descriptions from `TOOL_REGISTRY` (`src/types/mcp.ts`) into `bundle/manifest.json`. Runs during `build:mcpb`.
 - **Never manually edit version numbers** — use `npm run release`.
+
+### Downgrading version (manual)
+`release.js` blocks downgrades by design. To force a lower version:
+
+**Bash / Git Bash:**
+```bash
+npm version <target> --no-git-tag-version --force && node scripts/update-version.js
+```
+**PowerShell:**
+```powershell
+npm version <target> --no-git-tag-version --force; node scripts/update-version.js
+```
+
+This sets `package.json` and syncs the other files without creating a commit or tag.

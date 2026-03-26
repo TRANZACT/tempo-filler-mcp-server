@@ -6,7 +6,7 @@ import { ENV_VARS, DEFAULTS } from "./types/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const SERVER_VERSION = "2.0.3";
+export const SERVER_VERSION = "2.0.2";
 
 export interface UiAssets {
   getScheduleHtml: string | undefined;
