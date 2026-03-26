@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build",
-    "version": "node scripts/update-version.js && git add -A"
+    "version": "node scripts/update-version.js && git add -A",
+    "release": "node scripts/release.js"
   },
   "files": [
     "dist/**/*",

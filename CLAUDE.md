@@ -60,9 +60,18 @@ AI Assistant → MCP Server → TempoClient → [JIRA API + Tempo API] → Respo
 
 ## Release Workflow
 
-1. `npm version patch|minor|major` — bumps `package.json`, runs `scripts/update-version.js` (syncs version into `src/index.ts`, `README.md`, `bundle/manifest.json`), commits, and creates a git tag.
-2. Push the tag: `git push --follow-tags`
-3. GitHub Actions (`release.yml`) builds, packages `bundle.dxt`, creates GitHub release with the bundle attached.
-4. GitHub Actions (`publish.yml`) triggers on release publish: runs matrix tests (Node 18/20/22 × 3 OS), audits, verifies tag/version match, then publishes to NPM with provenance.
+### Official release (main branch → CI → NPM + GitHub Release)
+1. `npm run release` — validates branch (must be `main`), bumps patch (default), syncs version + tools, commits, tags, builds `.dxt`. Override with `minor`, `major`, or exact version. Use `--force` to skip branch guard.
+2. `git push --follow-tags` — triggers CI.
+   **PowerShell:** `npm run release -- <args>` may not forward arguments. Use `node scripts/release.js <args>` directly.
+3. `release.yml` (on `v*` tag) → builds, packages `.dxt`, creates GitHub Release.
+4. `publish.yml` (on release publish) → matrix tests (Node 18/20/22 × 3 OS), audit, version check, `npm publish --provenance`.
 
-**Never manually edit version numbers** — always go through `npm version` so the sync script keeps everything consistent.
+### Dev/testing builds (any branch, no version bump)
+`npm run build:all` — compiles and packages `.dxt` with the current version. No commits, no tags, no CI triggers. Use freely on feature branches for testing.
+
+### How version sync works
+- **Source of truth:** `package.json` version field.
+- **`scripts/update-version.js`** syncs version to `server-core.ts`, `README.md`, `bundle/manifest.json`. Runs automatically during `npm version` (lifecycle hook) and as a safety net during `build:mcpb`.
+- **`scripts/sync-manifest.js`** syncs tool descriptions from `TOOL_REGISTRY` (`src/types/mcp.ts`) into `bundle/manifest.json`. Runs during `build:mcpb`.
+- **Never manually edit version numbers** — use `npm run release`.

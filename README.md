@@ -474,6 +474,63 @@ src/
 - `npm run dev:http`: Build and run HTTP server (for MCP Apps testing)
 - `npm run typecheck`: Type checking without compilation
 
+### Release & Version Management
+
+#### When to use each command
+
+| Situation | Bash / Git Bash | PowerShell | What it does |
+|-----------|----------------|------------|-------------|
+| Patch release from main | `npm run release` | `node scripts/release.js` | Validates main branch, bumps patch (2.0.2 → 2.0.3), syncs, commits, tags, builds `.dxt` |
+| Minor release | `npm run release -- minor` | `node scripts/release.js minor` | Same as above but bumps minor (2.0.2 → 2.1.0) |
+| Major release | `npm run release -- major` | `node scripts/release.js major` | Same as above but bumps major (2.0.2 → 3.0.0) |
+| Exact version | `npm run release -- 3.0.0` | `node scripts/release.js 3.0.0` | Sets the exact version specified |
+| Dry-run preview | `npm run release -- --dry-run` | `node scripts/release.js --dry-run` | Shows what would happen, no changes |
+| Dry-run minor | `npm run release -- --dry-run minor` | `node scripts/release.js --dry-run minor` | Preview a minor bump |
+| Force (non-main branch) | `npm run release -- --force` | `node scripts/release.js --force` | Skips branch guard (e.g. release candidates) |
+| Force + minor | `npm run release -- --force minor` | `node scripts/release.js --force minor` | Force minor bump from non-main branch |
+| Dry-run + force | `npm run release -- --dry-run --force` | `node scripts/release.js --dry-run --force` | Preview from non-main, no changes |
+| Dev/test `.dxt` (any branch) | `npm run build:all` | `npm run build:all` | Compiles + packages `.dxt`. No version bump, commit, or tag. Safe anywhere. |
+| TypeScript only | `npm run build` | `npm run build` | `tsc` + Vite UI build. Output to `dist/`. |
+
+> **Why two columns?** PowerShell does not reliably forward arguments after `--` in `npm run <script> -- <args>`. The `node scripts/release.js <args>` form works identically in **all shells** (Bash, Git Bash, PowerShell, cmd). When in doubt, use the direct `node` command.
+
+#### Full release pipeline (step by step)
+
+**Bash / Git Bash:**
+```bash
+npm run release              # defaults to patch
+git push --follow-tags       # triggers CI
+```
+
+**PowerShell:**
+```powershell
+node scripts/release.js      # defaults to patch
+git push --follow-tags       # triggers CI
+```
+
+What happens under the hood:
+
+1. **Branch guard** — verifies you're on `main` (exit if not, unless `--force`)
+2. **Version validation** — ensures target version > current version (no downgrades)
+3. **`npm version <patch|minor|major|X.Y.Z>`** — bumps `package.json`, triggers the `"version"` lifecycle script:
+   - `scripts/update-version.js` syncs the new version to `server-core.ts`, `README.md`, `bundle/manifest.json`
+   - `git add -A` stages all synced files
+   - npm auto-commits and creates a `vX.Y.Z` tag
+4. **`npm run build:all`** — compiles TypeScript + UI, re-syncs version (safety net), syncs tool descriptions from `TOOL_REGISTRY` to manifest, packages `.dxt`
+5. **Done locally** — you now have a `.dxt` file and a tagged commit ready to push
+
+After `git push --follow-tags`:
+- `release.yml` triggers on the `v*` tag → builds → creates GitHub Release with `.dxt` attached
+- `publish.yml` triggers on release → runs matrix tests → publishes to NPM with provenance
+
+#### Important notes
+
+- **Version numbers are never edited manually.** They flow from `package.json` via `scripts/update-version.js` to all other files.
+- **Tool descriptions** are defined once in `TOOL_REGISTRY` (`src/types/mcp.ts`) and propagate to both the MCP server runtime and the `.dxt` manifest at build time via `scripts/sync-manifest.js`.
+- **`npm run build:all` is always safe** — it never creates commits, tags, or version bumps. Use it freely on any branch for testing.
+- **`npm run release` creates commits and tags** — only use it when you're ready to publish. The branch guard prevents accidental releases from feature branches.
+- **`node scripts/release.js <args>` works in all shells** — use this form in PowerShell, cmd, or any environment where `npm run release -- <args>` doesn't forward arguments correctly.
+
 ## License
 
 ISC License - see package.json for details
