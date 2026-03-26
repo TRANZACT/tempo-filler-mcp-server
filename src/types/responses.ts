@@ -87,15 +87,17 @@ export interface BulkWorklogResultResponse {
   date: string;
   issueKey: string;
   hours: number;
-  success: boolean;
-  worklogId?: string;          // Present if success
-  error?: string;              // Present if failure
+  status: "succeeded" | "failed" | "skipped";
+  worklogId?: string;          // Present if succeeded
+  error?: string;              // Present if failed
+  skipReason?: string;         // Present if skipped
 }
 
 export interface BulkPostSummaryResponse {
   total: number;
   succeeded: number;
   failed: number;
+  skipped: number;
   totalHours: number;
 }
 
