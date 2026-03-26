@@ -1,117 +1,44 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { format, parseISO } from "date-fns";
-import { TempoClient } from "../tempo-client.js";
-import {
-  GetScheduleInput,
-  TempoScheduleResponse,
-  GetScheduleJsonResponse,
-  ScheduleDayResponse
-} from "../types/index.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { TempoClient } from "../tempo-client.js";
+import type { GetScheduleInput, GetScheduleJsonResponse } from "../types/index.js";
+import { buildToolResult, buildToolError, mapScheduleDays, secondsToHours, enhanceErrorMessage } from "./tool-utils.js";
 
-/**
- * Get schedule tool implementation
- * Retrieves work schedule for authenticated user and date range
- * Shows working days, non-working days, and expected hours per day
- */
-export async function getSchedule(
-  tempoClient: TempoClient,
-  input: GetScheduleInput,
-  uiHtml?: string
-): Promise<CallToolResult> {
+const SCHEDULE_ERROR_HINTS = [
+  { pattern: "Authentication failed", tip: "Check your Personal Access Token (PAT) in the TEMPO_PAT environment variable." },
+  { pattern: "Access forbidden", tip: "Make sure you have permission to access schedule data in Tempo." },
+  { pattern: "404", tip: "Verify that Tempo is properly installed and the Core API is enabled." },
+  { pattern: "not found", tip: "Verify that Tempo is properly installed and the Core API is enabled." },
+] as const;
+
+function calculateScheduleSummary(days: ReturnType<typeof mapScheduleDays>, requiredSeconds: number) {
+  const workingDays = days.filter((d) => d.isWorkingDay).length;
+  const totalRequiredHours = secondsToHours(requiredSeconds);
+  return {
+    totalDays: days.length,
+    workingDays,
+    nonWorkingDays: days.length - workingDays,
+    totalRequiredHours,
+    averageDailyHours: workingDays > 0 ? Math.round((totalRequiredHours / workingDays) * 100) / 100 : 0,
+  };
+}
+
+export async function getSchedule(tempoClient: TempoClient, input: GetScheduleInput, _uiHtml?: string): Promise<CallToolResult> {
   try {
     const { startDate, endDate } = input;
+    const actualEndDate = endDate ?? startDate;
 
-    // Use endDate or default to startDate
-    const actualEndDate = endDate || startDate;
-
-    // Fetch schedule from Tempo API (automatically filters by authenticated user)
-    const scheduleResponses = await tempoClient.getSchedule({
-      startDate,
-      endDate: actualEndDate
-    });
-
-    if (!scheduleResponses || scheduleResponses.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: "No schedule data found for the specified date range."
-          }
-        ],
-        isError: true
-      };
+    const scheduleResponses = await tempoClient.getSchedule({ startDate, endDate: actualEndDate });
+    if (!scheduleResponses.length) {
+      return buildToolError("No schedule data found for the specified date range.");
     }
 
-    // Process the first schedule response (should contain the authenticated user's schedule)
-    const scheduleResponse: TempoScheduleResponse = scheduleResponses[0];
-    const { schedule } = scheduleResponse;
+    const days = mapScheduleDays(scheduleResponses);
+    const summary = calculateScheduleSummary(days, scheduleResponses[0].schedule.requiredSeconds);
 
-    // Process and format the schedule days
-    const scheduleDays: ScheduleDayResponse[] = schedule.days.map((day) => {
-      const parsedDate = parseISO(day.date);
-      const dayOfWeek = format(parsedDate, "EEEE");
-
-      return {
-        date: day.date,
-        dayOfWeek,
-        requiredHours: Math.round((day.requiredSeconds / 3600) * 100) / 100, // Round to 2 decimal places
-        isWorkingDay: day.type === "WORKING_DAY"
-      };
-    });
-
-    // Calculate summary statistics
-    const totalDays = scheduleDays.length;
-    const workingDays = scheduleDays.filter(day => day.isWorkingDay).length;
-    const nonWorkingDays = totalDays - workingDays;
-    const totalRequiredHours = Math.round((schedule.requiredSeconds / 3600) * 100) / 100;
-    const averageDailyHours = workingDays > 0 ? Math.round((totalRequiredHours / workingDays) * 100) / 100 : 0;
-
-    // Return JSON response
-    const response: GetScheduleJsonResponse = {
-      startDate,
-      endDate: actualEndDate,
-      days: scheduleDays,
-      summary: {
-        totalDays,
-        workingDays,
-        nonWorkingDays,
-        totalRequiredHours,
-        averageDailyHours
-      }
-    };
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(response)
-        }
-      ],
-      structuredContent: response as unknown as Record<string, unknown>,
-      isError: false
-    };
-
+    const response: GetScheduleJsonResponse = { startDate, endDate: actualEndDate, days, summary };
+    return { ...buildToolResult(response), structuredContent: response as unknown as Record<string, unknown> };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // Provide more helpful error messages for common issues
-    let enhancedErrorMessage = errorMessage;
-    if (errorMessage.includes('Authentication failed')) {
-      enhancedErrorMessage += `\n\nTip: Check your Personal Access Token (PAT) in the TEMPO_PAT environment variable.`;
-    } else if (errorMessage.includes('Access forbidden')) {
-      enhancedErrorMessage += `\n\nTip: Make sure you have permission to access schedule data in Tempo.`;
-    } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-      enhancedErrorMessage = `Schedule endpoint not found. This may indicate that Tempo Core API v2 is not available on your JIRA instance.\n\nTip: Verify that Tempo is properly installed and the Core API is enabled.`;
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `## Error Retrieving Schedule\n\n**Date Range:** ${input.startDate}${input.endDate ? ` to ${input.endDate}` : ''}\n\n**Error:** ${enhancedErrorMessage}`
-        }
-      ],
-      isError: true
-    };
+    const msg = enhanceErrorMessage(error instanceof Error ? error.message : String(error), SCHEDULE_ERROR_HINTS);
+    return buildToolError(`## Error Retrieving Schedule\n\n**Date Range:** ${input.startDate}${input.endDate ? ` to ${input.endDate}` : ""}\n\n**Error:** ${msg}`);
   }
 }
