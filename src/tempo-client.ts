@@ -18,6 +18,7 @@ import {
   PostWorklogParams,
 } from "./types/index.js";
 import { DEFAULTS } from "./types/index.js";
+import { TempoRateLimitError, TempoTimeoutError } from "./errors.js";
 
 export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter, WorklogDeleter, ScheduleReader, UserResolver {
   private axiosInstance: AxiosInstance;
@@ -75,7 +76,11 @@ export class TempoClient implements IssueResolver, WorklogReader, WorklogWriter,
             throw new Error('Access forbidden. Please check your permissions in JIRA/Tempo.');
           }
           if (error.response?.status === 429) {
-            throw new Error('Rate limit exceeded. Please try again later.');
+            throw new TempoRateLimitError(error.response.headers?.['retry-after'] as string | undefined);
+          }
+
+          if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            throw new TempoTimeoutError(error.config?.url ?? 'unknown');
           }
 
           const apiErrorMessage = (error.response?.data as TempoApiError | undefined)?.message;
