@@ -1,85 +1,37 @@
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { TempoClient } from "../tempo-client.js";
-import { PostWorklogInput, PostWorklogJsonResponse } from "../types/index.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { TempoClient } from "../tempo-client.js";
+import type { PostWorklogInput, PostWorklogJsonResponse } from "../types/index.js";
+import { buildToolResult, buildToolError, enhanceErrorMessage } from "./tool-utils.js";
 
-/**
- * Post worklog tool implementation
- * Creates a new worklog entry with issue key resolution to numerical ID
- * Automatically uses the authenticated user as the worker
- */
-export async function postWorklog(
-  tempoClient: TempoClient,
-  input: PostWorklogInput
-): Promise<CallToolResult> {
+const POST_ERROR_HINTS = [
+  { pattern: "not found", tip: "Make sure the issue key exists and you have access to it." },
+  { pattern: "Authentication failed", tip: "Check your Personal Access Token (PAT) in the TEMPO_PAT environment variable." },
+  { pattern: "Access forbidden", tip: "Make sure you have permission to log time to this issue." },
+] as const;
+
+export async function postWorklog(tempoClient: TempoClient, input: PostWorklogInput): Promise<CallToolResult> {
   try {
-    const { 
-      issueKey, 
-      hours, 
-      startDate, 
-      endDate, 
-      billable = true, 
-      description 
-    } = input;
-
-    // Create the worklog payload using the Tempo client (automatically uses authenticated user)
-    const payload = await tempoClient.createWorklogPayload({
-      issueKey,
-      hours,
-      startDate,
-      endDate,
-      billable,
-      description
-    });
-
-    // Create the worklog
+    const { issueKey, hours, startDate, endDate, billable = true, description } = input;
+    const payload = await tempoClient.createWorklogPayload({ issueKey, hours, startDate, endDate, billable, description });
     const worklogResponse = await tempoClient.createWorklog(payload);
-
-    // Handle the response - API returns an array with a single worklog object
     const worklog = Array.isArray(worklogResponse) ? worklogResponse[0] : worklogResponse;
-
-    // Return JSON response
+    if (!worklog) {
+      throw new Error("No worklog returned from API");
+    }
     const response: PostWorklogJsonResponse = {
       success: true,
       worklog: {
-        id: String(worklog.tempoWorklogId || worklog.id),
+        id: String(worklog.tempoWorklogId ?? worklog.id),
         issueKey,
         issueSummary: worklog.issue.summary,
         date: startDate,
         hours,
-        comment: description || ''
-      }
+        comment: description ?? "",
+      },
     };
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(response)
-        }
-      ],
-      isError: false
-    };
-
+    return buildToolResult(response);
   } catch (error) {
-    let errorMessage = error instanceof Error ? error.message : String(error);
-    
-    // Provide more helpful error messages for common issues
-    if (errorMessage.includes('not found')) {
-      errorMessage += `\n\nTip: Make sure the issue key '${input.issueKey}' exists and you have access to it.`;
-    } else if (errorMessage.includes('Authentication failed')) {
-      errorMessage += `\n\nTip: Check your Personal Access Token (PAT) in the TEMPO_PAT environment variable.`;
-    } else if (errorMessage.includes('Access forbidden')) {
-      errorMessage += `\n\nTip: Make sure you have permission to log time to this issue and that Tempo is properly configured.`;
-    }
-    
-    return {
-      content: [
-        {
-          type: "text",
-          text: `## Error Creating Worklog\n\n**Issue:** ${input.issueKey}\n**Hours:** ${input.hours}\n**Date:** ${input.startDate}\n\n**Error:** ${errorMessage}`
-        }
-      ],
-      isError: true
-    };
+    const msg = enhanceErrorMessage(error instanceof Error ? error.message : String(error), POST_ERROR_HINTS);
+    return buildToolError(`## Error Creating Worklog\n\n**Issue:** ${input.issueKey}\n**Hours:** ${input.hours}\n**Date:** ${input.startDate}\n\n**Error:** ${msg}`);
   }
 }
