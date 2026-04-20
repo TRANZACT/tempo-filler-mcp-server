@@ -33,7 +33,7 @@ export interface TempoWorklogResponse {
     name: string;
     id: number;
   };
-  attributes: Record<string, any>; // Custom attributes
+  attributes: Record<string, unknown>; // Custom attributes
   issue: {
     id: number;                  // Numerical issue ID
     key: string;                 // Issue key (e.g., "PROJ-1234")
@@ -42,12 +42,12 @@ export interface TempoWorklogResponse {
     issueStatus: string;
     reporterKey: string;
     estimatedRemainingSeconds: number;
-    components: any[];
+    components: unknown[];
     issueType: string;
     projectId: number;
     projectKey: string;
     iconUrl: string;
-    versions: any[];
+    versions: unknown[];
   };
   originId: number;              // Origin ID
   worker: string;                // Worker username
@@ -69,14 +69,14 @@ export interface TempoWorklog {
   billableSeconds: number;
   started: string;
   worker: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   timeSpent: string;        // Human readable format from API
   comment?: string;         // Worklog description/comment
 }
 
 // Tempo worklog creation payload
 export interface TempoWorklogCreatePayload {
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   billableSeconds: number;
   timeSpentSeconds: number;
   worker: string;               // Required - worker username or account ID
@@ -104,12 +104,6 @@ export interface GetWorklogsParams {
   issueKey?: string;      // Optional filter by specific issue
 }
 
-// Get worklogs response
-export interface GetWorklogsResponse {
-  worklogs: TempoWorklog[];
-  totalHours: number;
-}
-
 // Post worklog request parameters
 export interface PostWorklogParams {
   issueKey: string;       // e.g., "PROJ-1234" (will be resolved to numerical ID)
@@ -133,25 +127,6 @@ export interface BulkPostWorklogsParams {
   billable?: boolean;     // Defaults to true (applies to all entries)
 }
 
-// Bulk post worklogs response
-export interface BulkPostWorklogsResponse {
-  results: Array<{
-    success: boolean;
-    worklog?: TempoWorklog;
-    error?: string;
-    issueKey: string;
-    date: string;
-    hours: number;
-  }>;
-  summary: {
-    totalEntries: number;
-    successful: number;
-    failed: number;
-    totalHours: number;
-  };
-  dailyTotals: Record<string, Record<string, number>>; // date -> issueKey -> hours
-}
-
 // Delete worklog request parameters
 export interface DeleteWorklogParams {
   worklogId: string;      // Tempo worklog ID
@@ -172,14 +147,6 @@ export interface IssueCache {
     summary: string;
     cached: Date;
   };
-}
-
-// Recent issues for resource provider
-export interface RecentIssue {
-  key: string;
-  summary: string;
-  lastUsed: string;       // ISO datetime
-  project?: string;
 }
 
 // Tempo Schedule API response structures
@@ -217,23 +184,45 @@ export interface GetScheduleParams {
   endDate?: string;       // ISO date, defaults to startDate
 }
 
-// Processed schedule day for MCP responses
-export interface ScheduleDay {
-  date: string;           // ISO date
-  formattedDate: string;  // Human-readable date
-  requiredHours: number;  // Required hours (converted from seconds)
-  isWorkingDay: boolean;
-  type: "Working Day" | "Non-Working Day";
+// JIRA worklog entry as returned by /rest/api/latest/issue/{key}/worklog
+export interface JiraWorklogEntry {
+  id: string;
+  timeSpentSeconds: number;
+  timeSpent: string;
+  started: string;
+  comment?: string;
+  author?: {
+    name?: string;
+    accountId?: string;
+    emailAddress?: string;
+    displayName?: string;
+  };
+  issueId?: string;
 }
 
-// Get schedule response
-export interface GetScheduleResponse {
-  days: ScheduleDay[];
-  summary: {
-    totalDays: number;
-    workingDays: number;
-    nonWorkingDays: number;
-    totalRequiredHours: number;
-    averageDailyHours: number;
-  };
+// Service interfaces (Interface Segregation Principle)
+
+export interface IssueResolver {
+  getIssueById(issueKey: string): Promise<JiraIssue>;
+}
+
+export interface WorklogReader {
+  getWorklogs(params: { from: string; to: string; issueKey?: string }): Promise<TempoWorklogResponse[]>;
+}
+
+export interface WorklogWriter {
+  createWorklogPayload(params: PostWorklogParams): Promise<TempoWorklogCreatePayload>;
+  createWorklog(payload: TempoWorklogCreatePayload): Promise<TempoWorklogResponse>;
+}
+
+export interface WorklogDeleter {
+  deleteWorklog(worklogId: string): Promise<void>;
+}
+
+export interface ScheduleReader {
+  getSchedule(params: GetScheduleParams): Promise<TempoScheduleResponse[]>;
+}
+
+export interface UserResolver {
+  getCurrentUser(): Promise<string>;
 }
