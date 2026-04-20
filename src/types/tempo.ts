@@ -202,27 +202,47 @@ export interface JiraWorklogEntry {
 
 // Service interfaces (Interface Segregation Principle)
 
+/** Resolves JIRA issue keys (e.g. `"PROJ-1234"`) to full issue objects, with caching. */
 export interface IssueResolver {
   getIssueById(issueKey: string): Promise<JiraIssue>;
 }
 
+/** Reads worklogs for the authenticated user within a date range, optionally scoped to one issue. */
 export interface WorklogReader {
   getWorklogs(params: { from: string; to: string; issueKey?: string }): Promise<TempoWorklogResponse[]>;
 }
 
+/**
+ * Creates worklog entries via the Tempo API.
+ * `createWorklogPayload` builds the payload (resolving issue key + user identity);
+ * `createWorklog` posts it to the API.
+ */
 export interface WorklogWriter {
   createWorklogPayload(params: PostWorklogParams): Promise<TempoWorklogCreatePayload>;
   createWorklog(payload: TempoWorklogCreatePayload): Promise<TempoWorklogResponse>;
 }
 
+/** Deletes a worklog entry by its Tempo worklog ID. */
 export interface WorklogDeleter {
   deleteWorklog(worklogId: string): Promise<void>;
 }
 
+/**
+ * Updates an existing worklog entry via the Tempo API.
+ * `createWorklogPayload` builds the payload (resolving issue key + user identity);
+ * `updateWorklog` PUTs it to the API.
+ */
+export interface WorklogUpdater {
+  updateWorklog(worklogId: string, payload: TempoWorklogCreatePayload): Promise<TempoWorklogResponse>;
+  createWorklogPayload(params: PostWorklogParams): Promise<TempoWorklogCreatePayload>;
+}
+
+/** Reads the authenticated user's work schedule from Tempo Core API. */
 export interface ScheduleReader {
   getSchedule(params: GetScheduleParams): Promise<TempoScheduleResponse[]>;
 }
 
+/** Resolves the authenticated user's JIRA key. */
 export interface UserResolver {
   getCurrentUser(): Promise<string>;
 }

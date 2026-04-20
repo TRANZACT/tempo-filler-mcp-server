@@ -13,6 +13,10 @@ export interface UiAssets {
   getWorklogsHtml: string | undefined;
 }
 
+/**
+ * Constructs a fully configured `TempoClient` from environment variables.
+ * @throws {Error} if `TEMPO_BASE_URL` or `TEMPO_PAT` are absent from `env`.
+ */
 export function createTempoClient(env: NodeJS.ProcessEnv = process.env): TempoClient {
   const baseUrl = env[ENV_VARS.TEMPO_BASE_URL];
   const pat = env[ENV_VARS.TEMPO_PAT];
