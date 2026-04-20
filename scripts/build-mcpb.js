@@ -28,6 +28,14 @@ if (existsSync(join(BUNDLE, 'package.json'))) {
 console.log('2. Compiling TypeScript and UI...');
 execSync('npm run build:ui && tsc', { stdio: 'inherit', cwd: ROOT });
 
+// 2a. Sync version across all files
+console.log('2a. Syncing version...');
+execSync('node scripts/update-version.js', { stdio: 'inherit', cwd: ROOT });
+
+// 2b. Sync manifest tools from TOOL_REGISTRY
+console.log('2b. Syncing manifest tools...');
+execSync('node scripts/sync-manifest.js', { stdio: 'inherit', cwd: ROOT });
+
 // 3. Copy dist/ to bundle/server/
 console.log('3. Copying dist/ to bundle/server/...');
 mkdirSync(join(BUNDLE, 'server'), { recursive: true });

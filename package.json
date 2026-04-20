@@ -12,7 +12,8 @@
     "dev:http": "tsc && node dist/http-server.js",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
-    "version": "node scripts/update-version.js && git add -A"
+    "version": "node scripts/update-version.js && git add package.json src/server-core.ts README.md bundle/manifest.json",
+    "release": "node scripts/release.js"
   },
   "files": [
     "dist/**/*",
