@@ -101,6 +101,18 @@ export const TOOL_NAMES = {
   GET_SCHEDULE: "get_schedule",
 } as const;
 
+// Single source of truth for tool metadata (name + description)
+export const TOOL_REGISTRY: ReadonlyArray<{ name: string; description: string }> = [
+  { name: TOOL_NAMES.GET_WORKLOGS, description: "Retrieve worklogs for authenticated user and date range" },
+  { name: TOOL_NAMES.POST_WORKLOG, description: "Create a new worklog entry. For better results, consider using get_schedule first to verify working days and expected hours." },
+  { name: TOOL_NAMES.BULK_POST_WORKLOGS, description: "Create multiple worklog entries from a structured format. RECOMMENDED: Use get_schedule first to identify working days." },
+  { name: TOOL_NAMES.DELETE_WORKLOG, description: "Delete an existing worklog entry" },
+  { name: TOOL_NAMES.UPDATE_WORKLOG, description: "Update an existing worklog entry (change hours, description, issue, or date)" },
+  { name: TOOL_NAMES.BULK_DELETE_WORKLOGS, description: "Delete multiple worklog entries by their IDs. Use get_worklogs first to retrieve worklog IDs for a date range, then pass them here for efficient bulk deletion." },
+  { name: TOOL_NAMES.BULK_UPDATE_WORKLOGS, description: "Update multiple existing worklog entries. Use get_worklogs first to retrieve current worklogs and their IDs." },
+  { name: TOOL_NAMES.GET_SCHEDULE, description: "Retrieve work schedule for authenticated user and date range" },
+] as const;
+
 // Environment variable names
 export const ENV_VARS = {
   TEMPO_BASE_URL: "TEMPO_BASE_URL",

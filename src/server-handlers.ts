@@ -8,7 +8,11 @@ import {
   GetPromptRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { TempoClient } from "./tempo-client.js";
-import { TOOL_NAMES } from "./types/index.js";
+import { TOOL_NAMES, TOOL_REGISTRY } from "./types/index.js";
+
+function getToolDescription(name: string): string {
+  return TOOL_REGISTRY.find((t) => t.name === name)!.description;
+}
 import {
   GetWorklogsInputSchema,
   PostWorklogInputSchema,
@@ -27,7 +31,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
     tools: [
       {
         name: TOOL_NAMES.GET_WORKLOGS,
-        description: "Retrieve worklogs for authenticated user and date range",
+        description: getToolDescription(TOOL_NAMES.GET_WORKLOGS),
         inputSchema: {
           type: "object",
           properties: {
@@ -54,8 +58,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.POST_WORKLOG,
-        description:
-          "Create a new worklog entry. For better results, consider using get_schedule first to verify working days and expected hours.",
+        description: getToolDescription(TOOL_NAMES.POST_WORKLOG),
         inputSchema: {
           type: "object",
           properties: {
@@ -79,8 +82,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.BULK_POST_WORKLOGS,
-        description:
-          "Create multiple worklog entries from a structured format. RECOMMENDED: Use get_schedule first to identify working days and avoid logging time on non-working days.",
+        description: getToolDescription(TOOL_NAMES.BULK_POST_WORKLOGS),
         inputSchema: {
           type: "object",
           properties: {
@@ -109,7 +111,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.DELETE_WORKLOG,
-        description: "Delete an existing worklog entry",
+        description: getToolDescription(TOOL_NAMES.DELETE_WORKLOG),
         inputSchema: {
           type: "object",
           properties: {
@@ -120,7 +122,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.UPDATE_WORKLOG,
-        description: "Update an existing worklog entry (change hours, description, issue, or date)",
+        description: getToolDescription(TOOL_NAMES.UPDATE_WORKLOG),
         inputSchema: {
           type: "object",
           properties: {
@@ -145,8 +147,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.BULK_DELETE_WORKLOGS,
-        description:
-          "Delete multiple worklog entries by their IDs. Use get_worklogs first to retrieve worklog IDs for a date range, then pass them here for efficient bulk deletion.",
+        description: getToolDescription(TOOL_NAMES.BULK_DELETE_WORKLOGS),
         inputSchema: {
           type: "object",
           properties: {
@@ -163,8 +164,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.BULK_UPDATE_WORKLOGS,
-        description:
-          "Update multiple existing worklog entries. Use get_worklogs first to retrieve current worklogs and their IDs.",
+        description: getToolDescription(TOOL_NAMES.BULK_UPDATE_WORKLOGS),
         inputSchema: {
           type: "object",
           properties: {
@@ -194,7 +194,7 @@ export function registerHandlers(server: Server, tempoClient: TempoClient, uiAss
       },
       {
         name: TOOL_NAMES.GET_SCHEDULE,
-        description: "Retrieve work schedule for authenticated user and date range",
+        description: getToolDescription(TOOL_NAMES.GET_SCHEDULE),
         inputSchema: {
           type: "object",
           properties: {
