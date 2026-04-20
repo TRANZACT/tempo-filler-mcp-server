@@ -87,15 +87,17 @@ export interface BulkWorklogResultResponse {
   date: string;
   issueKey: string;
   hours: number;
-  success: boolean;
-  worklogId?: string;          // Present if success
-  error?: string;              // Present if failure
+  status: "succeeded" | "failed" | "skipped";
+  worklogId?: string;          // Present if succeeded
+  error?: string;              // Present if failed
+  skipReason?: string;         // Present if skipped
 }
 
 export interface BulkPostSummaryResponse {
   total: number;
   succeeded: number;
   failed: number;
+  skipped: number;
   totalHours: number;
 }
 
@@ -111,4 +113,38 @@ export interface BulkPostWorklogsJsonResponse {
 export interface DeleteWorklogJsonResponse {
   success: true;
   deletedWorklogId: string;
+}
+
+// ============================================================================
+// update_worklog Response Types
+// ============================================================================
+
+export interface UpdateWorklogJsonResponse {
+  success: true;
+  worklog: {
+    id: string;
+    issueKey: string;
+    issueSummary: string;
+    date: string;
+    hours: number;
+    comment: string;
+  };
+}
+
+// ============================================================================
+// bulk_delete_worklogs Response Types
+// ============================================================================
+
+export interface BulkDeleteWorklogsJsonResponse {
+  results: Array<{ worklogId: string; status: "succeeded" | "failed"; error?: string }>;
+  summary: { total: number; succeeded: number; failed: number };
+}
+
+// ============================================================================
+// bulk_update_worklogs Response Types
+// ============================================================================
+
+export interface BulkUpdateWorklogsJsonResponse {
+  results: Array<{ worklogId: string; date: string; issueKey: string; hours: number; status: "succeeded" | "failed"; error?: string }>;
+  summary: { total: number; succeeded: number; failed: number };
 }

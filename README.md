@@ -1,8 +1,8 @@
 # ⏰ Tempo Filler MCP Server
 
-[![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Download Desktop Extension](https://img.shields.io/badge/Claude_Desktop-Download_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
+[![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Download Desktop Extension](https://img.shields.io/badge/Claude_Desktop-Download_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.3/bundle.dxt)
 
-A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.
+A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, update, bulk operations, and deletion.
 
 ## 🖼️ Visual UI with MCP Apps
 
@@ -42,7 +42,7 @@ Check your work schedule with a visual calendar:
 
 ### Install in Claude Desktop
 
-[![Download Desktop Extension](https://img.shields.io/badge/Download-Desktop_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
+[![Download Desktop Extension](https://img.shields.io/badge/Download-Desktop_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.3/bundle.dxt)
 
 1. Click the button above to download the desktop extension (`.dxt` file)
 2. Open Claude Desktop and go to **Settings** → **Extensions**
@@ -168,12 +168,13 @@ This project showcases how AI-powered development can dramatically accelerate th
 
 - **Get Worklogs**: Retrieve worklogs for users with date range and issue filtering
 - **Create Worklogs**: Add single worklog entries with automatic issue resolution
-- **Bulk Operations**: Create multiple worklog entries efficiently using concurrent processing
+- **Update Worklogs**: Edit existing worklog entries (hours, description, issue, date)
 - **Delete Worklogs**: Remove existing worklog entries
+- **Bulk Create**: Create multiple worklog entries efficiently with concurrent processing
+- **Bulk Update**: Update multiple worklog entries in a single operation
+- **Bulk Delete**: Delete multiple worklog entries by ID with concurrent processing
 - **Get Schedule**: Retrieve work schedule with working/non-working day information
 - **Visual UIs**: Rich calendar and timesheet grid views via MCP Apps
-- **Resource Access**: Browse worklog data and recent issues
-- **Prompt Templates**: Generate analysis prompts for worklog data
 
 ## 📦 Installation
 
@@ -465,8 +466,10 @@ src/
 
 ### Build Commands
 
-- `npm run build`: Compile TypeScript + build UI bundles + create MCP bundle
+- `npm run build`: Compile TypeScript + build UI bundles
 - `npm run build:ui`: Build UI components only (Vite)
+- `npm run build:mcpb`: Package `.dxt` bundle for Claude Desktop distribution (requires prior `build`)
+- `npm run build:all`: Full build + `.dxt` packaging in one step
 - `npm run dev`: Build and run the server (stdio)
 - `npm run dev:http`: Build and run HTTP server (for MCP Apps testing)
 - `npm run typecheck`: Type checking without compilation

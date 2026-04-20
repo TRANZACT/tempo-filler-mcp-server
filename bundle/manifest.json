@@ -51,10 +51,13 @@
   },
   "tools": [
     { "name": "get_worklogs", "description": "Retrieve worklogs for authenticated user and date range" },
-    { "name": "post_worklog", "description": "Create a new worklog entry" },
-    { "name": "bulk_post_worklogs", "description": "Create multiple worklog entries" },
+    { "name": "post_worklog", "description": "Create a new worklog entry. For better results, consider using get_schedule first to verify working days and expected hours." },
+    { "name": "bulk_post_worklogs", "description": "Create multiple worklog entries from a structured format. RECOMMENDED: Use get_schedule first to identify working days." },
     { "name": "delete_worklog", "description": "Delete an existing worklog entry" },
-    { "name": "get_schedule", "description": "Retrieve work schedule for authenticated user" }
+    { "name": "update_worklog", "description": "Update an existing worklog entry (change hours, description, issue, or date)" },
+    { "name": "bulk_delete_worklogs", "description": "Delete multiple worklog entries by their IDs. Use get_worklogs first to retrieve worklog IDs for a date range, then pass them here for efficient bulk deletion." },
+    { "name": "bulk_update_worklogs", "description": "Update multiple existing worklog entries. Use get_worklogs first to retrieve current worklogs and their IDs." },
+    { "name": "get_schedule", "description": "Retrieve work schedule for authenticated user and date range" }
   ],
   "license": "ISC",
   "repository": {
