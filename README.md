@@ -2,7 +2,7 @@
 
 [![NPM Version](https://img.shields.io/npm/v/%40tranzact%2Ftempo-filler-mcp-server?style=for-the-badge)](https://www.npmjs.com/package/@tranzact/tempo-filler-mcp-server) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D) [![Download Desktop Extension](https://img.shields.io/badge/Claude_Desktop-Download_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
 
-A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server enables AI assistants to interact with Tempo's time tracking system, allowing for worklog retrieval, creation, bulk operations, and management.
+A Model Context Protocol (MCP) server for managing Tempo worklogs in JIRA. This server supports both Jira Server/Data Center and Jira Cloud with Tempo Cloud, enabling AI assistants to retrieve, create, update, delete, and bulk-manage time entries.
 
 ## 🖼️ Visual UI with MCP Apps
 
@@ -40,6 +40,8 @@ Check your work schedule with a visual calendar:
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_tempo--filler-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22tempo-filler%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22%40tranzact%2Ftempo-filler-mcp-server%22%5D%2C%22env%22%3A%7B%22TEMPO_BASE_URL%22%3A%22%24%7Binput%3Atempo_base_url%7D%22%2C%22TEMPO_PAT%22%3A%22%24%7Binput%3Atempo_pat%7D%22%7D%7D)
 
+The install button configures the Server/Data Center mode. Jira Cloud users should use the manual Cloud configuration below.
+
 ### Install in Claude Desktop
 
 [![Download Desktop Extension](https://img.shields.io/badge/Download-Desktop_Extension-0098FF?style=for-the-badge&logo=claude&logoColor=ffffff)](https://github.com/TRANZACT/tempo-filler-mcp-server/releases/download/v2.0.2/bundle.dxt)
@@ -51,22 +53,47 @@ Check your work schedule with a visual calendar:
 4. Fill in the **Tempo Base URL** and **PAT** in the environment variables section
 5. Don't forget to **enable it**!
 
+The desktop extension currently prompts for Server/Data Center credentials. Jira Cloud users should use the manual Cloud configuration below.
+
 ### Install Manually on your favorite AI Assistant
 
-   ```json
-   {
-     "mcpServers": {
-       "tempo-filler": {
-         "command": "npx",
-         "args": ["@tranzact/tempo-filler-mcp-server"],
-         "env": {
-           "TEMPO_BASE_URL": "https://your-jira-instance.com",
-           "TEMPO_PAT": "your-personal-access-token"
-         }
-       }
-     }
-   }
-   ```
+#### Jira Server/Data Center
+
+```json
+{
+  "mcpServers": {
+    "tempo-filler": {
+      "command": "npx",
+      "args": ["@tranzact/tempo-filler-mcp-server"],
+      "env": {
+        "TEMPO_BASE_URL": "https://jira.company.com",
+        "TEMPO_PAT": "your-jira-personal-access-token"
+      }
+    }
+  }
+}
+```
+
+#### Jira Cloud + Tempo Cloud
+
+```json
+{
+  "mcpServers": {
+    "tempo-filler": {
+      "command": "npx",
+      "args": ["@tranzact/tempo-filler-mcp-server"],
+      "env": {
+        "JIRA_BASE_URL": "https://your-site.atlassian.net",
+        "JIRA_EMAIL": "you@example.com",
+        "JIRA_API_TOKEN": "your-atlassian-api-token",
+        "TEMPO_TOKEN": "your-tempo-api-token"
+      }
+    }
+  }
+}
+```
+
+Cloud mode is selected automatically when `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, and `TEMPO_TOKEN` are all present. Tempo Cloud API requests default to `https://api.tempo.io`; set `TEMPO_BASE_URL` only if you need to override that endpoint.
 
 ## 💬 Real Usage Example
 
@@ -180,8 +207,10 @@ This project showcases how AI-powered development can dramatically accelerate th
 ### Prerequisites
 
 - **Node.js** (version 18 or higher)
-- A **JIRA instance** with **Tempo Timesheets** plugin installed
-- **Personal Access Token** for your JIRA account
+- A **JIRA instance** with **Tempo Timesheets** installed, or **Jira Cloud** with **Tempo Cloud**
+- Credentials for your deployment mode:
+  - Server/Data Center: a JIRA Personal Access Token
+  - Cloud: a Jira API token plus a Tempo API token
 
 ### NPX (Recommended)
 
@@ -212,25 +241,83 @@ For development or customization:
 
 ## ⚙️ Configuration
 
-The server requires environment variables for authentication and configuration:
+The server supports two authentication modes. Use one complete set of variables.
 
-### Required Environment Variables
+### Jira Server/Data Center
 
-- `TEMPO_BASE_URL`: Your JIRA instance URL (e.g., `https://jira.company.com`)
-- `TEMPO_PAT`: Personal Access Token for authentication
+Use this mode when Tempo is installed on the same Jira Server/Data Center instance.
 
-### Optional Environment Variables
+**Required:**
+
+- `TEMPO_BASE_URL`: Your Jira instance URL (for example, `https://jira.company.com`)
+- `TEMPO_PAT`: Jira Personal Access Token used as a Bearer token
+
+### Jira Cloud + Tempo Cloud
+
+Use this mode when your Jira site is hosted at `*.atlassian.net` and Tempo uses the Tempo Cloud API.
+
+**Required:**
+
+- `JIRA_BASE_URL`: Your Jira Cloud site URL (for example, `https://your-site.atlassian.net`)
+- `JIRA_EMAIL`: Email address for the Atlassian account
+- `JIRA_API_TOKEN`: Atlassian API token for Jira REST API access
+- `TEMPO_TOKEN`: Tempo API token for Tempo Cloud API access
+
+**Optional:**
+
+- `TEMPO_BASE_URL`: Tempo API base URL. Defaults to `https://api.tempo.io`.
+
+Alternative Atlassian-style names are also accepted: `ATLASSIAN_URL`, `ATLASSIAN_EMAIL`, and `ATLASSIAN_API_KEY`. `TEMPO_PAT` can be used instead of `TEMPO_TOKEN`, but `TEMPO_TOKEN` is clearer for Cloud setups.
+
+### Shared Optional Environment Variables
 
 - `TEMPO_DEFAULT_HOURS`: Default hours per workday (default: 8)
 
-### Creating a Personal Access Token (PAT)
+### Creating Credentials
 
-1. Log into your JIRA instance
-2. Go to **Profile** → **Personal Access Tokens**
-3. Click **Create token**
-4. Give it a name (e.g., "Tempo MCP Server")
-5. Set appropriate permissions (read/write access to issues and worklogs)
-6. Copy the token value for use in `TEMPO_PAT`
+#### Server/Data Center PAT
+
+Create this token in your Jira Server/Data Center profile. Jira Personal Access Tokens are available in Jira 8.14+.
+
+1. Log into your Jira Server/Data Center instance.
+2. Open your user profile menu.
+3. Go to **Profile** → **Personal Access Tokens**.
+4. Select **Create token**.
+5. Give it a clear name, such as `Tempo MCP Server`.
+6. Set an expiry date that matches your security policy.
+7. Create the token and copy it immediately.
+8. Use the copied value as `TEMPO_PAT`.
+
+The token must belong to a user who can view issues, view worklogs, create worklogs, update worklogs, delete worklogs, and view schedule information in Tempo.
+
+#### Cloud Tokens
+
+Cloud mode needs two different tokens: one Atlassian token for Jira issue/user lookups, and one Tempo token for Tempo worklog and schedule APIs.
+
+**Create the Jira Cloud API token:**
+
+1. Go to [Atlassian API tokens](https://id.atlassian.com/manage-profile/security/api-tokens).
+2. Select **Create API token** or **Create API token with scopes**.
+3. Name it clearly, such as `Tempo MCP Server - Jira`.
+4. Set an expiry date.
+5. If you use scoped tokens, grant Jira read access for issues and users. The server uses Jira to resolve issue keys and the current user; Tempo worklog writes use the Tempo token.
+6. Create the token and copy it immediately. Atlassian only shows the token once.
+7. Use the token as `JIRA_API_TOKEN`.
+8. Use the same Atlassian account email as `JIRA_EMAIL`.
+
+**Create the Tempo Cloud API token:**
+
+1. Open your Jira Cloud site.
+2. Open Tempo, then go to **Settings**.
+3. Under **Data Access**, select **API Integration**.
+4. Select **New Token**.
+5. Name it clearly, such as `Tempo MCP Server`.
+6. Set an expiry date.
+7. Grant the access needed by the tools you plan to use:
+   - Worklogs: manage access for `get_worklogs`, `post_worklog`, `bulk_post_worklogs`, `update_worklog`, and `delete_worklog`.
+   - Schemes / User Schedule: view access for `get_schedule`.
+8. Confirm and copy the token immediately. Tempo only shows the token when it is created.
+9. Use the token as `TEMPO_TOKEN`.
 
 ## 🛠️ Available Tools
 
