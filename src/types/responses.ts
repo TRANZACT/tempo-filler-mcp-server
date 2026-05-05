@@ -36,6 +36,7 @@ export interface WorklogResponse {
   issueKey: string;
   issueSummary: string;
   date: string;                // "2026-01-02" (ISO 8601)
+  startTime: string;           // "09:00" (HH:mm, local time)
   hours: number;               // decimal
   comment: string;
 }
@@ -111,4 +112,21 @@ export interface BulkPostWorklogsJsonResponse {
 export interface DeleteWorklogJsonResponse {
   success: true;
   deletedWorklogId: string;
+}
+
+// ============================================================================
+// update_worklog Response Types
+// ============================================================================
+
+export interface UpdateWorklogJsonResponse {
+  success: true;
+  worklog: {
+    id: string;
+    issueKey: string;
+    issueSummary: string;
+    date: string;
+    startTime: string;
+    hours: number;
+    comment: string;
+  };
 }

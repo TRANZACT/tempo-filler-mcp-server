@@ -50,6 +50,7 @@ export async function bulkPostWorklogs(
       issueKey: entry.issueKey,
       hours: entry.hours,
       startDate: entry.date,
+      startTime: entry.startTime,
       endDate: entry.date, // Single day entries
       billable,
       description: entry.description

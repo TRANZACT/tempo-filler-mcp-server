@@ -34,12 +34,13 @@ try {
 } catch {
   console.error("Warning: get-worklogs UI not found - UI features will be unavailable");
 }
-import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog, getSchedule } from "./tools/index.js";
+import { getWorklogs, postWorklog, bulkPostWorklogs, deleteWorklog, updateWorklog, getSchedule } from "./tools/index.js";
 import {
   GetWorklogsInputSchema,
   PostWorklogInputSchema,
   BulkPostWorklogsInputSchema,
   DeleteWorklogInputSchema,
+  UpdateWorklogInputSchema,
   GetScheduleInputSchema,
   TOOL_NAMES,
   ENV_VARS,
@@ -111,6 +112,7 @@ WORKFLOW: Always get_schedule first → then create worklogs only on working day
 
 CONSTRAINTS:
 - Dates: YYYY-MM-DD format
+- Times: HH:mm or HH:mm:ss format (optional startTime param, defaults to 00:00:00)
 - Hours: 0.1-24 per entry, default 8h/day
 - Bulk operations: max 100 entries
 - Issue keys: PROJECT-NUMBER format (e.g., PROJ-1234)
@@ -204,6 +206,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               pattern: "^\\d{4}-\\d{2}-\\d{2}$",
               description: "Start date in YYYY-MM-DD format",
             },
+            startTime: {
+              type: "string",
+              pattern: "^\\d{2}:\\d{2}(:\\d{2})?$",
+              description: "Start time in HH:mm or HH:mm:ss format (optional, defaults to 00:00:00). Use to place worklogs at specific times of day.",
+            },
             endDate: {
               type: "string",
               pattern: "^\\d{4}-\\d{2}-\\d{2}$",
@@ -247,6 +254,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     pattern: "^\\d{4}-\\d{2}-\\d{2}$",
                     description: "Date in YYYY-MM-DD format",
                   },
+                  startTime: {
+                    type: "string",
+                    pattern: "^\\d{2}:\\d{2}(:\\d{2})?$",
+                    description: "Start time in HH:mm or HH:mm:ss format (optional, defaults to 00:00:00)",
+                  },
                   description: {
                     type: "string",
                     description: "Work description (optional)",
@@ -273,6 +285,44 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             worklogId: {
               type: "string",
               description: "Tempo worklog ID to delete",
+            },
+          },
+          required: ["worklogId"],
+        },
+      },
+      {
+        name: TOOL_NAMES.UPDATE_WORKLOG,
+        description: "Update an existing worklog entry. Can modify hours, startTime, startDate, description, and billable status.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            worklogId: {
+              type: "string",
+              description: "Tempo worklog ID to update",
+            },
+            hours: {
+              type: "number",
+              minimum: 0.1,
+              maximum: 24,
+              description: "New hours worked (decimal, optional)",
+            },
+            startDate: {
+              type: "string",
+              pattern: "^\\d{4}-\\d{2}-\\d{2}$",
+              description: "New start date in YYYY-MM-DD format (optional)",
+            },
+            startTime: {
+              type: "string",
+              pattern: "^\\d{2}:\\d{2}(:\\d{2})?$",
+              description: "New start time in HH:mm or HH:mm:ss format (optional)",
+            },
+            description: {
+              type: "string",
+              description: "New work description (optional)",
+            },
+            billable: {
+              type: "boolean",
+              description: "Whether the time is billable (optional)",
             },
           },
           required: ["worklogId"],
@@ -329,6 +379,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case TOOL_NAMES.DELETE_WORKLOG: {
         const input = DeleteWorklogInputSchema.parse(args);
         return await deleteWorklog(tempoClient, input);
+      }
+
+      case TOOL_NAMES.UPDATE_WORKLOG: {
+        const input = UpdateWorklogInputSchema.parse(args);
+        return await updateWorklog(tempoClient, input);
       }
 
       case TOOL_NAMES.GET_SCHEDULE: {

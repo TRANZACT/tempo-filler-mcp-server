@@ -536,7 +536,7 @@ export class TempoClient {
       timeSpentSeconds: payload.timeSpentSeconds,
       billableSeconds: payload.billableSeconds,
       startDate: payload.started.split('T')[0], // Extract YYYY-MM-DD
-      startTime: '00:00:00',
+      startTime: payload.started.split('T')[1]?.replace(/\.\d+$/, '') || '00:00:00', // Extract HH:mm:ss from started
       authorAccountId: currentUser,
       description: payload.comment || undefined,
     };
@@ -600,6 +600,126 @@ export class TempoClient {
   }
 
   /**
+   * Update an existing worklog entry
+   * Cloud: PUT on Tempo REST API v4
+   * Server/DC: PUT on Tempo Server plugin API
+   */
+  async updateWorklog(worklogId: string, updates: {
+    hours?: number;
+    startDate?: string;
+    startTime?: string;
+    description?: string;
+    billable?: boolean;
+  }): Promise<TempoWorklogResponse> {
+    try {
+      if (this.isCloud) {
+        return await this.updateWorklogCloud(worklogId, updates);
+      } else {
+        return await this.updateWorklogServerDC(worklogId, updates);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const apiError: TempoApiError = error.response.data;
+        throw new Error(`Failed to update worklog: ${apiError.message || error.message}`);
+      }
+      throw new Error(`Failed to update worklog: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async updateWorklogCloud(worklogId: string, updates: {
+    hours?: number;
+    startDate?: string;
+    startTime?: string;
+    description?: string;
+    billable?: boolean;
+  }): Promise<TempoWorklogResponse> {
+    const currentUser = await this.getCurrentUser();
+
+    // Fetch the existing worklog to get current values
+    const existing = await this.tempoAxios.get(`/4/worklogs/${worklogId}`);
+    const current = existing.data;
+
+    // Build full payload with existing values as defaults
+    const timeInSeconds = updates.hours !== undefined
+      ? this.hoursToSeconds(updates.hours)
+      : current.timeSpentSeconds;
+
+    const cloudPayload: Record<string, any> = {
+      issueId: current.issue?.id,
+      timeSpentSeconds: timeInSeconds,
+      billableSeconds: updates.billable === false ? 0 : (updates.hours !== undefined ? timeInSeconds : current.billableSeconds),
+      startDate: updates.startDate ?? current.startDate,
+      startTime: updates.startTime !== undefined
+        ? (updates.startTime.split(':').length === 2 ? `${updates.startTime}:00` : updates.startTime)
+        : current.startTime,
+      authorAccountId: currentUser,
+      description: updates.description ?? current.description ?? undefined,
+    };
+
+    const response = await this.tempoAxios.put(`/4/worklogs/${worklogId}`, cloudPayload);
+    const worklog = response.data;
+
+    const issueId = String(worklog.issue?.id);
+    let resolvedKey = '';
+    let issueSummary = '';
+    try {
+      const issue = await this.getIssueById(issueId);
+      resolvedKey = issue.key;
+      issueSummary = issue.fields.summary;
+    } catch {
+      // Continue without enrichment
+    }
+
+    return this.convertCloudWorklog(worklog, resolvedKey, issueSummary);
+  }
+
+  private async updateWorklogServerDC(worklogId: string, updates: {
+    hours?: number;
+    startDate?: string;
+    startTime?: string;
+    description?: string;
+    billable?: boolean;
+  }): Promise<TempoWorklogResponse> {
+    const payload: Record<string, any> = {};
+
+    if (updates.hours !== undefined) {
+      const timeInSeconds = this.hoursToSeconds(updates.hours);
+      payload.timeSpentSeconds = timeInSeconds;
+      if (updates.billable !== false) {
+        payload.billableSeconds = timeInSeconds;
+      } else {
+        payload.billableSeconds = 0;
+      }
+    }
+
+    if (updates.startDate !== undefined || updates.startTime !== undefined) {
+      const rawTime = updates.startTime || '00:00:00';
+      const normalizedTime = rawTime.includes(':') && rawTime.split(':').length === 2
+        ? `${rawTime}:00.000`
+        : `${rawTime}.000`;
+      if (updates.startDate) {
+        payload.started = `${updates.startDate}T${normalizedTime}`;
+      }
+    }
+
+    if (updates.description !== undefined) {
+      payload.comment = updates.description;
+    }
+
+    const response: AxiosResponse<TempoWorklogResponse[]> = await this.tempoAxios.put(
+      `/rest/tempo-timesheets/4/worklogs/${worklogId}`,
+      payload
+    );
+
+    const worklogs = response.data;
+    if (!Array.isArray(worklogs) || worklogs.length === 0) {
+      throw new Error('Unexpected response format from Tempo API');
+    }
+
+    return worklogs[0];
+  }
+
+  /**
    * Helper method to convert hours to seconds
    */
   hoursToSeconds(hours: number): number {
@@ -621,6 +741,7 @@ export class TempoClient {
     issueKey: string;
     hours: number;
     startDate: string; // YYYY-MM-DD
+    startTime?: string; // HH:mm or HH:mm:ss (defaults to 00:00:00)
     endDate?: string;  // YYYY-MM-DD
     billable?: boolean;
     description?: string;
@@ -635,13 +756,19 @@ export class TempoClient {
     const startDate = params.startDate;
     const endDate = params.endDate || params.startDate;
 
+    // Normalize startTime to HH:mm:ss.SSS format
+    const rawTime = params.startTime || '00:00:00';
+    const normalizedTime = rawTime.includes(':') && rawTime.split(':').length === 2
+      ? `${rawTime}:00.000`
+      : `${rawTime}.000`;
+
     // Build the payload using the authenticated user as worker
     const payload: TempoWorklogCreatePayload = {
       attributes: {},
       billableSeconds: params.billable !== false ? timeInSeconds : 0,
       timeSpentSeconds: timeInSeconds,
       worker: currentUser,
-      started: `${startDate}T00:00:00.000`,
+      started: `${startDate}T${normalizedTime}`,
       originTaskId: issue.id,
       remainingEstimate: null,
       endDate: `${endDate}T00:00:00.000`,
@@ -659,6 +786,7 @@ export class TempoClient {
     issueKey: string;
     hours: number;
     startDate: string;
+    startTime?: string;
     endDate?: string;
     billable?: boolean;
     description?: string;

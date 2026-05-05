@@ -16,6 +16,7 @@ export async function postWorklog(
       issueKey, 
       hours, 
       startDate, 
+      startTime,
       endDate, 
       billable = true, 
       description 
@@ -26,6 +27,7 @@ export async function postWorklog(
       issueKey,
       hours,
       startDate,
+      startTime,
       endDate,
       billable,
       description
