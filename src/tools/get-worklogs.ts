@@ -37,12 +37,16 @@ export async function getWorklogs(
     const worklogs: WorklogResponse[] = worklogResponses.map((response: TempoWorklogResponse) => {
       // Extract date part from datetime string (handles both "2025-09-12 00:00:00.000" and "2025-09-12T00:00:00.000")
       const datePart = response.started.split(/[T\s]/)[0];
+      // Extract time part (HH:mm) from datetime string
+      const timeMatch = response.started.match(/[T\s](\d{2}:\d{2})/);
+      const startTime = timeMatch ? timeMatch[1] : '00:00';
 
       return {
         id: response.tempoWorklogId?.toString() || response.id || 'unknown',
         issueKey: response.issue.key,
         issueSummary: response.issue.summary,
         date: datePart,
+        startTime,
         hours: Math.round((response.timeSpentSeconds / 3600) * 100) / 100,
         comment: response.comment || ''
       };

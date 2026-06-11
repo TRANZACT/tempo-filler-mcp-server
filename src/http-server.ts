@@ -63,15 +63,30 @@ try {
   console.error("Warning: get-worklogs UI not found");
 }
 
-// Environment configuration
-const config = {
-  baseUrl: process.env[ENV_VARS.TEMPO_BASE_URL] || '',
-  personalAccessToken: process.env[ENV_VARS.TEMPO_PAT] || '',
+// Environment configuration - supports both Cloud and Server/DC modes
+const jiraBaseUrl = process.env[ENV_VARS.JIRA_BASE_URL] || process.env[ENV_VARS.ATLASSIAN_URL] || '';
+const jiraEmail = process.env[ENV_VARS.JIRA_EMAIL] || process.env[ENV_VARS.ATLASSIAN_EMAIL] || '';
+const jiraApiToken = process.env[ENV_VARS.JIRA_API_TOKEN] || process.env[ENV_VARS.ATLASSIAN_API_KEY] || '';
+const tempoToken = process.env[ENV_VARS.TEMPO_TOKEN] || process.env[ENV_VARS.TEMPO_PAT] || '';
+const tempoBaseUrl = process.env[ENV_VARS.TEMPO_BASE_URL] || '';
+
+const isCloudMode = !!(jiraBaseUrl && jiraEmail && jiraApiToken && tempoToken);
+
+const config = isCloudMode ? {
+  jiraBaseUrl,
+  jiraEmail,
+  jiraApiToken,
+  tempoBaseUrl: tempoBaseUrl || 'https://api.tempo.io',
+  tempoToken,
+  defaultHours: parseInt(process.env[ENV_VARS.TEMPO_DEFAULT_HOURS] || String(DEFAULTS.HOURS_PER_DAY)),
+} : {
+  baseUrl: tempoBaseUrl || '',
+  personalAccessToken: tempoToken || '',
   defaultHours: parseInt(process.env[ENV_VARS.TEMPO_DEFAULT_HOURS] || String(DEFAULTS.HOURS_PER_DAY)),
 };
 
-if (!config.baseUrl || !config.personalAccessToken) {
-  console.error("Error: TEMPO_BASE_URL and TEMPO_PAT environment variables are required");
+if (!isCloudMode && (!config.baseUrl || !config.personalAccessToken)) {
+  console.error("Error: Set TEMPO_BASE_URL + TEMPO_PAT (Server/DC) or JIRA_BASE_URL + JIRA_EMAIL + JIRA_API_TOKEN + TEMPO_TOKEN (Cloud)");
   process.exit(1);
 }
 
@@ -109,6 +124,7 @@ function createMCPServer(): Server {
             issueKey: { type: "string", description: "JIRA issue key" },
             hours: { type: "number", minimum: 0.1, maximum: 24, description: "Hours worked" },
             startDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Start date" },
+            startTime: { type: "string", pattern: "^\\d{2}:\\d{2}(:\\d{2})?$", description: "Start time in HH:mm or HH:mm:ss (optional)" },
             endDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "End date (optional)" },
             billable: { type: "boolean", description: "Billable (default: true)" },
             description: { type: "string", description: "Work description" },
@@ -130,6 +146,7 @@ function createMCPServer(): Server {
                   issueKey: { type: "string" },
                   hours: { type: "number", minimum: 0.1, maximum: 24 },
                   date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+                  startTime: { type: "string", pattern: "^\\d{2}:\\d{2}(:\\d{2})?$" },
                   description: { type: "string" },
                 },
                 required: ["issueKey", "hours", "date"],

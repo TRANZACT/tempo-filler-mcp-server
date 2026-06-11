@@ -16,6 +16,7 @@ export const PostWorklogInputSchema = z.object({
   issueKey: z.string().min(1, "Issue key is required"),
   hours: z.number().min(0.1, "Hours must be at least 0.1").max(24, "Hours cannot exceed 24"),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
+  startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Start time must be in HH:mm or HH:mm:ss format").optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format").optional(),
   billable: z.boolean().optional(),
   description: z.string().optional(),
@@ -26,12 +27,23 @@ export const BulkWorklogEntrySchema = z.object({
   issueKey: z.string().min(1, "Issue key is required"),
   hours: z.number().min(0.1, "Hours must be at least 0.1").max(24, "Hours cannot exceed 24"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Start time must be in HH:mm or HH:mm:ss format").optional(),
   description: z.string().optional(),
 });
 
 // Bulk post worklogs tool input schema
 export const BulkPostWorklogsInputSchema = z.object({
   worklogs: z.array(BulkWorklogEntrySchema).min(1, "At least one worklog entry is required"),
+  billable: z.boolean().optional(),
+});
+
+// Update worklog tool input schema
+export const UpdateWorklogInputSchema = z.object({
+  worklogId: z.string().min(1, "Worklog ID is required"),
+  hours: z.number().min(0.1, "Hours must be at least 0.1").max(24, "Hours cannot exceed 24").optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format").optional(),
+  startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Start time must be in HH:mm or HH:mm:ss format").optional(),
+  description: z.string().optional(),
   billable: z.boolean().optional(),
 });
 
@@ -67,6 +79,7 @@ export type PostWorklogInput = z.infer<typeof PostWorklogInputSchema>;
 export type BulkWorklogEntry = z.infer<typeof BulkWorklogEntrySchema>;
 export type BulkPostWorklogsInput = z.infer<typeof BulkPostWorklogsInputSchema>;
 export type DeleteWorklogInput = z.infer<typeof DeleteWorklogInputSchema>;
+export type UpdateWorklogInput = z.infer<typeof UpdateWorklogInputSchema>;
 export type GetScheduleInput = z.infer<typeof GetScheduleInputSchema>;
 export type WorklogSummaryArgs = z.infer<typeof WorklogSummaryArgsSchema>;
 export type BulkEntryHelperArgs = z.infer<typeof BulkEntryHelperArgsSchema>;
@@ -83,6 +96,7 @@ export const TOOL_NAMES = {
   POST_WORKLOG: "post_worklog",
   BULK_POST_WORKLOGS: "bulk_post_worklogs",
   DELETE_WORKLOG: "delete_worklog",
+  UPDATE_WORKLOG: "update_worklog",
   GET_SCHEDULE: "get_schedule",
 } as const;
 
@@ -101,8 +115,17 @@ export const RESOURCE_NAMES = {
 // Environment variable names
 export const ENV_VARS = {
   TEMPO_BASE_URL: "TEMPO_BASE_URL",
-  TEMPO_PAT: "TEMPO_PAT", 
+  TEMPO_PAT: "TEMPO_PAT",
   TEMPO_DEFAULT_HOURS: "TEMPO_DEFAULT_HOURS",
+  // Cloud mode env vars
+  JIRA_BASE_URL: "JIRA_BASE_URL",
+  JIRA_EMAIL: "JIRA_EMAIL",
+  JIRA_API_TOKEN: "JIRA_API_TOKEN",
+  TEMPO_TOKEN: "TEMPO_TOKEN",
+  // Alternative names (Atlassian-style)
+  ATLASSIAN_URL: "ATLASSIAN_URL",
+  ATLASSIAN_EMAIL: "ATLASSIAN_EMAIL",
+  ATLASSIAN_API_KEY: "ATLASSIAN_API_KEY",
 } as const;
 
 // Default configuration values
